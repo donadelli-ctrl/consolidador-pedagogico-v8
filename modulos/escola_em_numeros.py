@@ -33,13 +33,21 @@ def gerar_resumo_por_turma(
 
     )
 
+    # ------------------------------------------------------
+    # ATENÇÃO
+    # ------------------------------------------------------
+
     atencao = (
 
         base
 
         [
 
-            base["SITUACAO"] == "Atenção"
+            base["SITUACAO"]
+
+            ==
+
+            "Atenção"
 
         ]
 
@@ -59,13 +67,55 @@ def gerar_resumo_por_turma(
 
     )
 
+    # ------------------------------------------------------
+    # ACOMPANHAMENTO
+    # ------------------------------------------------------
+
+    acompanhamento = (
+
+        base
+
+        [
+
+            base["SITUACAO"]
+
+            ==
+
+            "Acompanhamento"
+
+        ]
+
+        .groupby(
+
+            "TURMA_PAD"
+
+        )
+
+        .size()
+
+        .reset_index(
+
+            name="ACOMPANHAMENTO"
+
+        )
+
+    )
+
+    # ------------------------------------------------------
+    # ADEQUADO
+    # ------------------------------------------------------
+
     adequado = (
 
         base
 
         [
 
-            base["SITUACAO"] == "Adequado"
+            base["SITUACAO"]
+
+            ==
+
+            "Adequado"
 
         ]
 
@@ -84,6 +134,10 @@ def gerar_resumo_por_turma(
         )
 
     )
+
+    # ------------------------------------------------------
+    # PRIORITÁRIOS
+    # ------------------------------------------------------
 
     prioridade = (
 
@@ -121,6 +175,16 @@ def gerar_resumo_por_turma(
 
         .merge(
 
+            acompanhamento,
+
+            on="TURMA_PAD",
+
+            how="left"
+
+        )
+
+        .merge(
+
             adequado,
 
             on="TURMA_PAD",
@@ -144,6 +208,24 @@ def gerar_resumo_por_turma(
             0
 
         )
+
+    )
+
+    resumo["PERC_PRIORITARIOS"] = (
+
+        100
+
+        *
+
+        resumo["PRIORITARIOS"]
+
+        /
+
+        resumo["ESTUDANTES"]
+
+    ).round(
+
+        1
 
     )
 
@@ -172,15 +254,25 @@ def gerar_painel_escola(
 
             "Estudantes em Atenção",
 
+            "Estudantes em Acompanhamento",
+
             "Estudantes Adequados"
 
         ],
 
         "QUANTIDADE":[
 
-            len(base),
+            len(
 
-            base["TURMA_PAD"].nunique(),
+                base
+
+            ),
+
+            base[
+
+                "TURMA_PAD"
+
+            ].nunique(),
 
             (
 
@@ -189,6 +281,16 @@ def gerar_painel_escola(
                 ==
 
                 "Atenção"
+
+            ).sum(),
+
+            (
+
+                base["SITUACAO"]
+
+                ==
+
+                "Acompanhamento"
 
             ).sum(),
 
