@@ -78,7 +78,7 @@ arquivo_ADE = st.file_uploader(
 
     "ADE",
 
-    type=["xlsx", "xlsm"]
+    type=["zip", "xlsx", "xlsm"]
 
 )
 
@@ -86,7 +86,7 @@ arquivo_PP1 = st.file_uploader(
 
     "PP1",
 
-    type=["xlsx", "xlsm"]
+    type=["zip", "xlsx", "xlsm"]
 
 )
 
@@ -94,7 +94,7 @@ arquivo_PP2 = st.file_uploader(
 
     "PP2",
 
-    type=["xlsx", "xlsm"]
+    type=["zip", "xlsx", "xlsm"]
 
 )
 
@@ -102,7 +102,7 @@ arquivo_ADP = st.file_uploader(
 
     "ADP",
 
-    type=["xlsx", "xlsm"]
+    type=["zip", "xlsx", "xlsm"]
 
 )
 
@@ -110,7 +110,7 @@ arquivo_PP3 = st.file_uploader(
 
     "PP3",
 
-    type=["xlsx", "xlsm"]
+    type=["zip", "xlsx", "xlsm"]
 
 )
 
