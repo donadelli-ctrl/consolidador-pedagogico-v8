@@ -2,7 +2,7 @@ from openpyxl.styles import Font
 
 
 # ==========================================================
-# FORMATAÇÃO DAS ABAS
+# FORMATAÇÃO
 # ==========================================================
 
 def aplicar_cores(ws):
@@ -20,14 +20,22 @@ def aplicar_cores(ws):
         )
 
     # ------------------------------------------------------
-    # EVOLUÇÃO
+    # COLORIR CÉLULAS
     # ------------------------------------------------------
 
     for linha in ws.iter_rows():
 
         for celula in linha:
 
-            if celula.value == "Melhorou":
+            valor = str(
+
+                celula.value
+
+            )
+
+            # EVOLUÇÃO
+
+            if valor == "Melhorou":
 
                 celula.font = Font(
 
@@ -37,7 +45,7 @@ def aplicar_cores(ws):
 
                 )
 
-            elif celula.value == "Manteve":
+            elif valor == "Manteve":
 
                 celula.font = Font(
 
@@ -47,7 +55,7 @@ def aplicar_cores(ws):
 
                 )
 
-            elif celula.value == "Piorou":
+            elif valor == "Piorou":
 
                 celula.font = Font(
 
@@ -57,7 +65,7 @@ def aplicar_cores(ws):
 
                 )
 
-            elif celula.value == "Sem Comparação":
+            elif valor == "Sem Comparação":
 
                 celula.font = Font(
 
@@ -67,11 +75,9 @@ def aplicar_cores(ws):
 
                 )
 
-    # ------------------------------------------------------
-    # SITUAÇÃO
-    # ------------------------------------------------------
+            # SITUAÇÃO
 
-            elif celula.value == "Adequado":
+            elif valor == "Adequado":
 
                 celula.font = Font(
 
@@ -81,7 +87,7 @@ def aplicar_cores(ws):
 
                 )
 
-            elif celula.value == "Acompanhamento":
+            elif valor == "Acompanhamento":
 
                 celula.font = Font(
 
@@ -91,7 +97,7 @@ def aplicar_cores(ws):
 
                 )
 
-            elif celula.value == "Atenção":
+            elif valor == "Atenção":
 
                 celula.font = Font(
 
