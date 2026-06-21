@@ -34,17 +34,9 @@ from modulos.excel_final import (
 # TÍTULO
 # ==========================================================
 
-st.title(
+st.title("🏆 CONSOLIDADOR PEDAGÓGICO V8.1")
 
-    "🏆 CONSOLIDADOR PEDAGÓGICO V8.1"
-
-)
-
-st.subheader(
-
-    "URE Pirassununga"
-
-)
+st.subheader("URE Pirassununga")
 
 
 # ==========================================================
@@ -52,90 +44,39 @@ st.subheader(
 # ==========================================================
 
 nome_escola = st.text_input(
-
     "Nome da escola"
-
 )
 
 
 # ==========================================================
-# ARQUIVOS
+# UPLOAD DOS ARQUIVOS
 # ==========================================================
 
-st.header(
-
-    "Arquivos"
-
-)
+st.header("Arquivos")
 
 arquivo_ADE = st.file_uploader(
-
     "ADE",
-
-    type=[
-
-        "xlsx",
-
-        "xlsm"
-
-    ]
-
+    type=["xlsx", "xlsm"]
 )
 
 arquivo_PP1 = st.file_uploader(
-
     "PP1",
-
-    type=[
-
-        "xlsx",
-
-        "xlsm"
-
-    ]
-
+    type=["xlsx", "xlsm"]
 )
 
 arquivo_PP2 = st.file_uploader(
-
     "PP2",
-
-    type=[
-
-        "xlsx",
-
-        "xlsm"
-
-    ]
-
+    type=["xlsx", "xlsm"]
 )
 
 arquivo_ADP = st.file_uploader(
-
     "ADP",
-
-    type=[
-
-        "xlsx",
-
-        "xlsm"
-
-    ]
-
+    type=["xlsx", "xlsm"]
 )
 
 arquivo_PP3 = st.file_uploader(
-
     "PP3",
-
-    type=[
-
-        "xlsx",
-
-        "xlsm"
-
-    ]
-
+    type=["xlsx", "xlsm"]
 )
 
 
@@ -144,9 +85,7 @@ arquivo_PP3 = st.file_uploader(
 # ==========================================================
 
 gerar = st.button(
-
     "GERAR CONSOLIDADO"
-
 )
 
 
@@ -156,15 +95,7 @@ gerar = st.button(
 
 if gerar:
 
-    st.success(
-
-        "Processamento iniciado."
-
-    )
-
-    # ------------------------------------------------------
-    # LEITURA DOS ARQUIVOS
-    # ------------------------------------------------------
+    st.success("Processamento iniciado.")
 
     df_ADE = None
     df_PP1 = None
@@ -172,86 +103,57 @@ if gerar:
     df_ADP = None
     df_PP3 = None
 
+    # ------------------------------------------------------
+    # LEITURA
+    # ------------------------------------------------------
+
     if arquivo_ADE is not None:
-
-        df_ADE = ler_ADE(
-
-            arquivo_ADE
-
-        )
+        df_ADE = ler_ADE(arquivo_ADE)
 
     if arquivo_PP1 is not None:
-
         df_PP1 = ler_PP(
-
             arquivo_PP1,
-
             "PP1"
-
         )
 
     if arquivo_PP2 is not None:
-
         df_PP2 = ler_PP(
-
             arquivo_PP2,
-
             "PP2"
-
         )
 
     if arquivo_ADP is not None:
-
         df_ADP = ler_PP(
-
             arquivo_ADP,
-
             "ADP"
-
         )
 
     if arquivo_PP3 is not None:
-
         df_PP3 = ler_PP(
-
             arquivo_PP3,
-
             "PP3"
-
         )
 
-    st.success(
-
-        "Arquivos carregados."
-
-    )
+    st.success("Arquivos carregados.")
 
     # ------------------------------------------------------
     # CONSOLIDAÇÃO
     # ------------------------------------------------------
 
     base_final = consolidar_base(
-
         df_ADE,
-
         df_PP1,
-
         df_PP2,
-
         df_ADP,
-
         df_PP3
-
     )
 
-    # ------------------------------------------------------
-    # LIMPEZA
-    # ------------------------------------------------------
-
     base_final = limpar_base(
-
         base_final
+    )
 
+    st.success(
+        "Base consolidada."
     )
 
     # ------------------------------------------------------
@@ -259,93 +161,55 @@ if gerar:
     # ------------------------------------------------------
 
     base_final = calcular_participacao(
-
         base_final
-
     )
 
-    sem_participacao = (
-
-        obter_sem_participacao(
-
-            base_final
-
-        )
-
+    sem_participacao = obter_sem_participacao(
+        base_final
     )
 
     st.success(
-
         "Participação calculada."
-
     )
 
     # ------------------------------------------------------
     # PRIORITÁRIOS
     # ------------------------------------------------------
 
-    prioridade_lp = "PP2_LP_STATUS"
-
-    prioridade_mat = "PP2_MAT_STATUS"
+    coluna_lp = "PP2_LP_STATUS"
+    coluna_mat = "PP2_MAT_STATUS"
 
     if "PP3_LP_STATUS" in base_final.columns:
 
-        prioridade_lp = "PP3_LP_STATUS"
+        coluna_lp = "PP3_LP_STATUS"
+        coluna_mat = "PP3_MAT_STATUS"
 
-        prioridade_mat = "PP3_MAT_STATUS"
-
-    prioritarios = (
-
-        obter_prioritarios(
-
-            base_final,
-
-            prioridade_lp,
-
-            prioridade_mat
-
-        )
-
+    prioritarios = obter_prioritarios(
+        base_final,
+        coluna_lp,
+        coluna_mat
     )
 
     st.success(
-
         "Prioritários identificados."
-
     )
 
     # ------------------------------------------------------
     # RESUMO POR TURMA
     # ------------------------------------------------------
 
-    resumo_por_turma = (
-
-        gerar_resumo_por_turma(
-
-            base_final,
-
-            prioritarios
-
-        )
-
+    resumo_por_turma = gerar_resumo_por_turma(
+        base_final,
+        prioritarios
     )
 
-    painel_escola = (
-
-        gerar_painel_escola(
-
-            base_final,
-
-            resumo_por_turma
-
-        )
-
+    painel_escola = gerar_painel_escola(
+        base_final,
+        resumo_por_turma
     )
 
     st.success(
-
         "Painel da escola gerado."
-
     )
 
     # ------------------------------------------------------
@@ -353,91 +217,59 @@ if gerar:
     # ------------------------------------------------------
 
     evolucao = gerar_evolucao(
-
         base_final
-
     )
 
     st.success(
-
         "Evolução calculada."
-
     )
 
     # ------------------------------------------------------
-    # PREPARAÇÃO DAS ABAS
+    # ABAS DO EXCEL
     # ------------------------------------------------------
 
     abas = montar_abas(
-
         painel_escola,
-
         base_final,
-
         resumo_por_turma,
-
         prioritarios,
-
         sem_participacao,
-
         evolucao
-
     )
 
     st.success(
-
-        "Abas preparadas."
-
+        "Abas do Excel preparadas."
     )
 
     # ------------------------------------------------------
     # INDICADORES
     # ------------------------------------------------------
 
-    col1, col2, col3 = st.columns(
-
-        3
-
-    )
+    col1, col2, col3 = st.columns(3)
 
     with col1:
-
         st.metric(
-
             "Estudantes",
-
             len(base_final)
-
         )
 
     with col2:
-
         st.metric(
-
             "Prioritários",
-
             len(prioritarios)
-
         )
 
     with col3:
-
         st.metric(
-
             "Baixa participação",
-
             len(sem_participacao)
-
         )
 
     st.subheader(
-
         "Painel da Escola"
-
     )
 
     st.dataframe(
-
-        painel_escola
-
+        painel_escola,
+        use_container_width=True
     )
