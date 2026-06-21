@@ -25,6 +25,10 @@ from modulos.excel_final import (
     montar_abas
 )
 
+from modulos.evolucao import (
+    gerar_evolucao
+)
+
 
 # ==========================================================
 # CONFIGURAÇÃO
@@ -354,6 +358,48 @@ if gerar:
     st.success(
 
         "Painel da escola gerado."
+
+    )
+
+    # ------------------------------------------------------
+    # EVOLUÇÃO
+    # ------------------------------------------------------
+
+    evolucao = gerar_evolucao(
+
+        base_final
+
+    )
+
+    st.success(
+
+        "Evolução calculada."
+
+    )
+
+    # ------------------------------------------------------
+    # MONTAGEM DAS ABAS
+    # ------------------------------------------------------
+
+    abas = montar_abas(
+
+        painel_escola,
+
+        base_final,
+
+        resumo_por_turma,
+
+        prioritarios,
+
+        sem_participacao,
+
+        evolucao
+
+    )
+
+    st.success(
+
+        "Abas do Excel preparadas."
 
     )
 
