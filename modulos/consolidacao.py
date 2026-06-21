@@ -19,124 +19,106 @@ def consolidar_base(
 
 ):
 
+    # ======================================================
+    # BASE INICIAL
+    # ======================================================
+
     base = df_ADE.copy()
 
-    # ------------------------------------------------------
-    # PP1
-    # ------------------------------------------------------
+    # ======================================================
+    # LISTA DE DATAFRAMES
+    # ======================================================
 
-    if (
+    lista_bases = [
 
-        df_PP1 is not None
+        df_PP1,
 
-        and
+        df_PP2,
 
-        len(df_PP1) > 0
+        df_ADP,
 
-    ):
+        df_PP3
 
-        base = base.merge(
+    ]
 
-            df_PP1,
+    # ======================================================
+    # CONSOLIDAÇÃO
+    # ======================================================
 
-            on="CHAVE_MERGE",
+    for df in lista_bases:
 
-            how="outer"
+        if (
 
-        )
+            df is not None
 
-    # ------------------------------------------------------
-    # PP2
-    # ------------------------------------------------------
+            and
 
-    if (
+            len(df) > 0
 
-        df_PP2 is not None
+        ):
 
-        and
+            # ----------------------------------------------
+            # VERIFICAR CHAVE
+            # ----------------------------------------------
 
-        len(df_PP2) > 0
+            if (
 
-    ):
+                "CHAVE_MERGE"
 
-        base = base.merge(
+                not in df.columns
 
-            df_PP2,
+            ):
 
-            on="CHAVE_MERGE",
+                continue
 
-            how="outer"
+            if (
 
-        )
+                "CHAVE_MERGE"
 
-    # ------------------------------------------------------
-    # ADP
-    # ------------------------------------------------------
+                not in base.columns
 
-    if (
+            ):
 
-        df_ADP is not None
+                continue
 
-        and
+            base = base.merge(
 
-        len(df_ADP) > 0
+                df,
 
-    ):
+                on="CHAVE_MERGE",
 
-        base = base.merge(
+                how="outer"
 
-            df_ADP,
+            )
 
-            on="CHAVE_MERGE",
-
-            how="outer"
-
-        )
-
-    # ------------------------------------------------------
-    # PP3
-    # ------------------------------------------------------
-
-    if (
-
-        df_PP3 is not None
-
-        and
-
-        len(df_PP3) > 0
-
-    ):
-
-        base = base.merge(
-
-            df_PP3,
-
-            on="CHAVE_MERGE",
-
-            how="outer"
-
-        )
-
-    # ------------------------------------------------------
+    # ======================================================
     # REMOVER DUPLICADOS
-    # ------------------------------------------------------
+    # ======================================================
 
-    base = (
+    if (
 
-        base
+        "CHAVE_MERGE"
 
-        .drop_duplicates(
+        in base.columns
 
-            subset="CHAVE_MERGE"
+    ):
+
+        base = (
+
+            base
+
+            .drop_duplicates(
+
+                subset="CHAVE_MERGE"
+
+            )
+
+            .reset_index(
+
+                drop=True
+
+            )
 
         )
-
-        .reset_index(
-
-            drop=True
-
-        )
-
-    )
 
     return base
