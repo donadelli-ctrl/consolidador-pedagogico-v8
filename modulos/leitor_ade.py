@@ -1,5 +1,6 @@
 import pandas as pd
 import zipfile
+
 from io import BytesIO
 
 
@@ -7,17 +8,29 @@ from io import BytesIO
 # LEITOR ADE
 # ==========================================================
 
-def ler_ADE(arquivo):
+def ler_ADE(
+
+    arquivo
+
+):
 
     nome = arquivo.name.lower()
 
-    # ------------------------------------------------------
+    # ======================================================
     # ZIP
-    # ------------------------------------------------------
+    # ======================================================
 
-    if nome.endswith(".zip"):
+    if nome.endswith(
 
-        with zipfile.ZipFile(arquivo) as z:
+        ".zip"
+
+    ):
+
+        with zipfile.ZipFile(
+
+            arquivo
+
+        ) as z:
 
             arquivos_excel = [
 
@@ -39,7 +52,11 @@ def ler_ADE(arquivo):
 
             ]
 
-            if len(arquivos_excel) == 0:
+            if len(
+
+                arquivos_excel
+
+            ) == 0:
 
                 raise Exception(
 
@@ -49,7 +66,11 @@ def ler_ADE(arquivo):
 
             excel = arquivos_excel[0]
 
-            with z.open(excel) as f:
+            with z.open(
+
+                excel
+
+            ) as f:
 
                 df = pd.read_excel(
 
@@ -61,9 +82,9 @@ def ler_ADE(arquivo):
 
                 )
 
-    # ------------------------------------------------------
+    # ======================================================
     # EXCEL
-    # ------------------------------------------------------
+    # ======================================================
 
     else:
 
