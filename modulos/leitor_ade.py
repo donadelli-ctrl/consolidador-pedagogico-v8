@@ -94,4 +94,53 @@ def ler_ADE(
 
         )
 
+    # ======================================================
+    # PADRONIZAR COLUNAS
+    # ======================================================
+
+    df.columns = [
+
+        str(col).upper()
+
+        for col in df.columns
+
+    ]
+
+    # ======================================================
+    # CHAVE DE MERGE
+    # ======================================================
+
+    if (
+
+        "RA" in df.columns
+
+        and
+
+        "TURMA" in df.columns
+
+    ):
+
+        df["CHAVE_MERGE"] = (
+
+            df["RA"]
+
+            .astype(str)
+
+            .str.strip()
+
+            +
+
+            "_"
+
+            +
+
+            df["TURMA"]
+
+            .astype(str)
+
+            .str.strip()
+
+        )
+
     return df
+    
