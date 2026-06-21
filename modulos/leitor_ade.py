@@ -1,72 +1,76 @@
 import pandas as pd
-
-from modulos.funcoes import (
-
-    padronizar_turma,
-
-    criar_chave
-
-)
+import zipfile
+from io import BytesIO
 
 
 # ==========================================================
 # LEITOR ADE
 # ==========================================================
 
-def ler_ADE(caminho):
+def ler_ADE(arquivo):
 
-    df = pd.read_excel(caminho)
+    nome = arquivo.name.lower()
 
-    df.columns = [
+    # ------------------------------------------------------
+    # ZIP
+    # ------------------------------------------------------
 
-        str(col).strip()
+    if nome.endswith(".zip"):
 
-        for col in df.columns
+        with zipfile.ZipFile(arquivo) as z:
 
-    ]
+            arquivos_excel = [
 
-    temp = pd.DataFrame()
+                arq
 
-    temp["RA"] = df["Id"]
+                for arq in z.namelist()
 
-    temp["NOME"] = df["ESTUDANTE"]
+                if arq.lower().endswith(
 
-    temp["TURMA"] = df["TURMA"]
+                    (
 
-    temp["ADE_LP"] = df["Status"]
+                        ".xlsx",
 
-    temp["ADE_MAT"] = df["Status.1"]
+                        ".xlsm"
 
-    temp["TURMA_PAD"] = (
+                    )
 
-        temp["TURMA"]
+                )
 
-        .apply(
+            ]
 
-            padronizar_turma
+            if len(arquivos_excel) == 0:
+
+                raise Exception(
+
+                    "Nenhum arquivo Excel encontrado dentro do ZIP."
+
+                )
+
+            excel = arquivos_excel[0]
+
+            with z.open(excel) as f:
+
+                df = pd.read_excel(
+
+                    BytesIO(
+
+                        f.read()
+
+                    )
+
+                )
+
+    # ------------------------------------------------------
+    # EXCEL
+    # ------------------------------------------------------
+
+    else:
+
+        df = pd.read_excel(
+
+            arquivo
 
         )
 
-    )
-
-    temp["CHAVE_MERGE"] = (
-
-        temp.apply(
-
-            lambda x:
-
-            criar_chave(
-
-                x["NOME"],
-
-                x["TURMA"]
-
-            ),
-
-            axis=1
-
-        )
-
-    )
-
-    return temp
+    return df
