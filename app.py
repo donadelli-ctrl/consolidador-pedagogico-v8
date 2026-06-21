@@ -1,69 +1,134 @@
 import streamlit as st
 
+
 # ==========================================================
-# CONFIGURAÇÃO DA PÁGINA
+# CONFIGURAÇÃO
 # ==========================================================
 
 st.set_page_config(
 
-    page_title="Consolidador Pedagógico 2026",
-
-    page_icon="📊",
+    page_title="Consolidador Pedagógico V8.0",
 
     layout="wide"
 
 )
 
+
 # ==========================================================
 # TÍTULO
 # ==========================================================
 
-st.title("📊 CONSOLIDADOR PEDAGÓGICO 2026")
+st.title(
 
-st.subheader("URE Pirassununga")
-
-st.markdown("---")
-
-# ==========================================================
-# LGPD
-# ==========================================================
-
-st.info(
-
-    """
-    🔒 Os arquivos enviados são utilizados exclusivamente
-    para gerar o consolidado pedagógico.
-
-    Nenhum dado dos estudantes é armazenado após o
-    processamento.
-    """
+    "🏆 CONSOLIDADOR PEDAGÓGICO V8.0"
 
 )
+
+st.subheader(
+
+    "URE Pirassununga"
+
+)
+
 
 # ==========================================================
 # ESCOLA
 # ==========================================================
 
-escola = st.text_input(
+nome_escola = st.text_input(
 
-    "Nome da Escola"
+    "Nome da escola"
 
 )
 
+
 # ==========================================================
-# BOTÃO TESTE
+# UPLOAD DOS ARQUIVOS
+# ==========================================================
+
+st.header(
+
+    "Arquivos"
+
+)
+
+arquivo_ADE = st.file_uploader(
+
+    "ADE",
+
+    type=[
+
+        "xlsx",
+
+        "xlsm"
+
+    ]
+
+)
+
+arquivo_PP1 = st.file_uploader(
+
+    "PP1",
+
+    type=[
+
+        "xlsx",
+
+        "xlsm"
+
+    ]
+
+)
+
+arquivo_PP2 = st.file_uploader(
+
+    "PP2",
+
+    type=[
+
+        "xlsx",
+
+        "xlsm"
+
+    ]
+
+)
+
+arquivo_ADP = st.file_uploader(
+
+    "ADP",
+
+    type=[
+
+        "xlsx",
+
+        "xlsm"
+
+    ]
+
+)
+
+arquivo_PP3 = st.file_uploader(
+
+    "PP3",
+
+    type=[
+
+        "xlsx",
+
+        "xlsm"
+
+    ]
+
+)
+
+
+# ==========================================================
+# BOTÃO
 # ==========================================================
 
 gerar = st.button(
 
-    "🚀 GERAR CONSOLIDADO"
+    "GERAR CONSOLIDADO"
 
 )
-
-if gerar:
-
-    st.success(
-
-        "Estrutura da V8.0 criada com sucesso!"
-
-    )
