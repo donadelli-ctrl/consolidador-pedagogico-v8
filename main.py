@@ -22,15 +22,16 @@ st.subheader(
 
 st.markdown(
 
-    """
-Bem-vindo ao Consolidador Pedagógico.
+"""
+### Bem-vindo!
 
 Utilize o menu lateral para acessar:
 
-- Consolidador
-- Indicadores
-- Histórico
-- Comparativos
-- Sobre
+- 📊 Consolidador
+- 📈 Indicadores
+- 📚 Histórico
+- 🔄 Comparativos
+- ℹ️ Sobre
+
 """
 )
