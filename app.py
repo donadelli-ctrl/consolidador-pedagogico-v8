@@ -1,10 +1,11 @@
 import streamlit as st
+import pandas as pd
+from io import BytesIO
 
 from modulos.leitor_ade import ler_ADE
 from modulos.leitor_pp import ler_PP
 
 from modulos.consolidacao import consolidar_base
-
 from modulos.limpeza import limpar_base
 
 from modulos.participacao import (
@@ -42,7 +43,6 @@ st.set_page_config(
 
 )
 
-
 # ==========================================================
 # TÍTULO
 # ==========================================================
@@ -59,7 +59,6 @@ st.subheader(
 
 )
 
-
 # ==========================================================
 # ESCOLA
 # ==========================================================
@@ -70,9 +69,8 @@ nome_escola = st.text_input(
 
 )
 
-
 # ==========================================================
-# UPLOAD DOS ARQUIVOS
+# ARQUIVOS
 # ==========================================================
 
 st.header(
@@ -151,7 +149,6 @@ arquivo_PP3 = st.file_uploader(
 
 )
 
-
 # ==========================================================
 # BOTÃO
 # ==========================================================
@@ -162,82 +159,53 @@ gerar = st.button(
 
 )
 
-
 # ==========================================================
 # PROCESSAMENTO
 # ==========================================================
 
 if gerar:
 
-    st.success(
+    # ------------------------------------------------------
+    # LEITURA
+    # ------------------------------------------------------
 
-        "Processamento iniciado."
+    df_ADE = ler_ADE(
+
+        arquivo_ADE
 
     )
 
-    # ------------------------------------------------------
-    # LEITURA DOS ARQUIVOS
-    # ------------------------------------------------------
+    df_PP1 = ler_PP(
 
-    df_ADE = None
-    df_PP1 = None
-    df_PP2 = None
-    df_ADP = None
-    df_PP3 = None
+        arquivo_PP1,
 
-    if arquivo_ADE is not None:
+        "PP1"
 
-        df_ADE = ler_ADE(
+    ) if arquivo_PP1 else None
 
-            arquivo_ADE
+    df_PP2 = ler_PP(
 
-        )
+        arquivo_PP2,
 
-    if arquivo_PP1 is not None:
+        "PP2"
 
-        df_PP1 = ler_PP(
+    ) if arquivo_PP2 else None
 
-            arquivo_PP1,
+    df_ADP = ler_PP(
 
-            "PP1"
+        arquivo_ADP,
 
-        )
+        "ADP"
 
-    if arquivo_PP2 is not None:
+    ) if arquivo_ADP else None
 
-        df_PP2 = ler_PP(
+    df_PP3 = ler_PP(
 
-            arquivo_PP2,
+        arquivo_PP3,
 
-            "PP2"
+        "PP3"
 
-        )
-
-    if arquivo_ADP is not None:
-
-        df_ADP = ler_PP(
-
-            arquivo_ADP,
-
-            "ADP"
-
-        )
-
-    if arquivo_PP3 is not None:
-
-        df_PP3 = ler_PP(
-
-            arquivo_PP3,
-
-            "PP3"
-
-        )
-
-    st.success(
-
-        "Arquivos carregados."
-
-    )
+    ) if arquivo_PP3 else None
 
     # ------------------------------------------------------
     # CONSOLIDAÇÃO
@@ -257,107 +225,9 @@ if gerar:
 
     )
 
-    # ------------------------------------------------------
-    # LIMPEZA
-    # ------------------------------------------------------
-
     base_final = limpar_base(
 
         base_final
-
-    )
-
-    # ------------------------------------------------------
-    # PARTICIPAÇÃO
-    # ------------------------------------------------------
-
-    base_final = calcular_participacao(
-
-        base_final
-
-    )
-
-    sem_participacao = (
-
-        obter_sem_participacao(
-
-            base_final
-
-        )
-
-    )
-
-    st.success(
-
-        "Participação calculada."
-
-    )
-
-    # ------------------------------------------------------
-    # PRIORITÁRIOS
-    # ------------------------------------------------------
-
-    prioridade_lp = "PP2_LP_STATUS"
-
-    prioridade_mat = "PP2_MAT_STATUS"
-
-    if "PP3_LP_STATUS" in base_final.columns:
-
-        prioridade_lp = "PP3_LP_STATUS"
-
-        prioridade_mat = "PP3_MAT_STATUS"
-
-    prioritarios = (
-
-        obter_prioritarios(
-
-            base_final,
-
-            prioridade_lp,
-
-            prioridade_mat
-
-        )
-
-    )
-
-    st.success(
-
-        "Prioritários identificados."
-
-    )
-
-    # ------------------------------------------------------
-    # RESUMO POR TURMA
-    # ------------------------------------------------------
-
-    resumo_por_turma = (
-
-        gerar_resumo_por_turma(
-
-            base_final,
-
-            prioritarios
-
-        )
-
-    )
-
-    painel_escola = (
-
-        gerar_painel_escola(
-
-            base_final,
-
-            resumo_por_turma
-
-        )
-
-    )
-
-    st.success(
-
-        "Painel da escola gerado."
 
     )
 
@@ -371,14 +241,74 @@ if gerar:
 
     )
 
-    st.success(
+    base_final["EVOL_LP"] = evolucao["EVOL LP"]
 
-        "Evolução calculada."
+    base_final["EVOL_MAT"] = evolucao["EVOL MAT"]
+
+    base_final["SITUACAO"] = evolucao["SITUAÇÃO"]
+
+    # ------------------------------------------------------
+    # PARTICIPAÇÃO
+    # ------------------------------------------------------
+
+    base_final = calcular_participacao(
+
+        base_final
+
+    )
+
+    sem_participacao = obter_sem_participacao(
+
+        base_final
 
     )
 
     # ------------------------------------------------------
-    # MONTAGEM DAS ABAS
+    # PRIORITÁRIOS
+    # ------------------------------------------------------
+
+    coluna_lp = "PP2_LP_STATUS"
+
+    coluna_mat = "PP2_MAT_STATUS"
+
+    if "PP3_LP_STATUS" in base_final.columns:
+
+        coluna_lp = "PP3_LP_STATUS"
+
+        coluna_mat = "PP3_MAT_STATUS"
+
+    prioritarios = obter_prioritarios(
+
+        base_final,
+
+        coluna_lp,
+
+        coluna_mat
+
+    )
+
+    # ------------------------------------------------------
+    # INDICADORES
+    # ------------------------------------------------------
+
+    resumo_por_turma = gerar_resumo_por_turma(
+
+        base_final,
+
+        prioritarios
+
+    )
+
+    painel_escola = gerar_painel_escola(
+
+        base_final,
+
+        resumo_por_turma
+
+    )
+
+    # ------------------------------------------------------
+    # ABAS
     # ------------------------------------------------------
 
     abas = montar_abas(
@@ -397,42 +327,76 @@ if gerar:
 
     )
 
+    # ------------------------------------------------------
+    # GERAR EXCEL
+    # ------------------------------------------------------
+
+    output = BytesIO()
+
+    with pd.ExcelWriter(
+
+        output,
+
+        engine="openpyxl"
+
+    ) as writer:
+
+        for nome_aba, df in abas.items():
+
+            df.to_excel(
+
+                writer,
+
+                sheet_name=str(nome_aba)[:31],
+
+                index=False
+
+            )
+
+    output.seek(
+
+        0
+
+    )
+
+    # ------------------------------------------------------
+    # DOWNLOAD
+    # ------------------------------------------------------
+
+    nome_arquivo = (
+
+        nome_escola
+
+        .upper()
+
+        .replace(
+
+            " ",
+
+            "_"
+
+        )
+
+        +
+
+        "_CONSOLIDADO_2026.xlsx"
+
+    )
+
     st.success(
 
-        "Abas do Excel preparadas."
+        "Consolidado gerado com sucesso."
 
     )
 
-    # ------------------------------------------------------
-    # RESULTADOS
-    # ------------------------------------------------------
+    st.download_button(
 
-    st.write(
+        "⬇ BAIXAR CONSOLIDADO",
 
-        "Quantidade de estudantes:",
+        data=output,
 
-        len(base_final)
+        file_name=nome_arquivo,
 
-    )
-
-    st.write(
-
-        "Quantidade de prioritários:",
-
-        len(prioritarios)
-
-    )
-
-    st.write(
-
-        "Quantidade de estudantes com baixa participação:",
-
-        len(sem_participacao)
-
-    )
-
-    st.dataframe(
-
-        painel_escola
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
     )
