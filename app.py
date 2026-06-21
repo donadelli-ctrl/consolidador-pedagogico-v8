@@ -230,6 +230,162 @@ if gerar:
 
     )
 
+        # ======================================================
+    # CONSOLIDAÇÃO
+    # ======================================================
+
+    base_final = consolidar_base(
+
+        df_ADE,
+
+        df_PP1,
+
+        df_PP2,
+
+        df_ADP,
+
+        df_PP3
+
+    )
+
+    # ======================================================
+    # LIMPEZA
+    # ======================================================
+
+    base_final = limpar_base(
+
+        base_final
+
+    )
+
+    # ======================================================
+    # PARTICIPAÇÃO
+    # ======================================================
+
+    base_final = calcular_participacao(
+
+        base_final
+
+    )
+
+    sem_participacao = (
+
+        obter_sem_participacao(
+
+            base_final
+
+        )
+
+    )
+
+    st.success(
+
+        "Participação calculada."
+
+    )
+
+    # ======================================================
+    # PRIORITÁRIOS
+    # ======================================================
+
+    prioridade_lp = "PP2_LP_STATUS"
+
+    prioridade_mat = "PP2_MAT_STATUS"
+
+    if "PP3_LP_STATUS" in base_final.columns:
+
+        prioridade_lp = "PP3_LP_STATUS"
+
+        prioridade_mat = "PP3_MAT_STATUS"
+
+    prioritarios = (
+
+        obter_prioritarios(
+
+            base_final,
+
+            prioridade_lp,
+
+            prioridade_mat
+
+        )
+
+    )
+
+    st.success(
+
+        "Prioritários identificados."
+
+    )
+
+    # ======================================================
+    # RESUMO POR TURMA
+    # ======================================================
+
+    resumo_por_turma = (
+
+        gerar_resumo_por_turma(
+
+            base_final,
+
+            prioritarios
+
+        )
+
+    )
+
+    painel_escola = (
+
+        gerar_painel_escola(
+
+            base_final,
+
+            resumo_por_turma
+
+        )
+
+    )
+
+    st.success(
+
+        "Painel da escola gerado."
+
+    )
+
+    # ======================================================
+    # RESULTADOS
+    # ======================================================
+
+    st.write(
+
+        "Quantidade de estudantes:",
+
+        len(base_final)
+
+    )
+
+    st.write(
+
+        "Quantidade de prioritários:",
+
+        len(prioritarios)
+
+    )
+
+    st.write(
+
+        "Quantidade de estudantes com baixa participação:",
+
+        len(sem_participacao)
+
+    )
+
+    st.dataframe(
+
+        painel_escola
+
+    )
+
     # ======================================================
     # CONSOLIDAÇÃO
     # ======================================================
