@@ -1,124 +1,140 @@
 import pandas as pd
-
-from modulos.funcoes import (
-
-    padronizar_turma,
-
-    criar_chave,
-
-    definir_status
-
-)
+import zipfile
+from io import BytesIO
 
 
 # ==========================================================
-# LEITOR UNIVERSAL DAS PROVAS PAULISTAS
+# LEITOR PROVA PAULISTA
 # ==========================================================
 
-def ler_PP(caminho, prefixo):
+def ler_PP(
 
-    df = pd.read_excel(caminho)
+    arquivo,
 
-    df.columns = [
+    prefixo
 
-        str(col).strip()
+):
 
-        for col in df.columns
+    nome = arquivo.name.lower()
 
-    ]
+    # ------------------------------------------------------
+    # ZIP
+    # ------------------------------------------------------
 
-    df = df[
+    if nome.endswith(
 
-        df["Nome"].notna()
+        ".zip"
 
-    ].copy()
+    ):
 
-    df = df[
+        with zipfile.ZipFile(
 
-        ~
+            arquivo
 
-        df["Nome"]
+        ) as z:
 
-        .astype(str)
+            arquivos_excel = [
 
-        .str.upper()
+                arq
 
-        .str.contains(
+                for arq in z.namelist()
 
-            "TOTAL|FILTROS APLICADOS",
+                if arq.lower().endswith(
 
-            na=False
+                    (
+
+                        ".xlsx",
+
+                        ".xlsm"
+
+                    )
+
+                )
+
+            ]
+
+            if len(
+
+                arquivos_excel
+
+            ) == 0:
+
+                raise Exception(
+
+                    "Nenhum arquivo Excel encontrado dentro do ZIP."
+
+                )
+
+            excel = arquivos_excel[0]
+
+            with z.open(
+
+                excel
+
+            ) as f:
+
+                df = pd.read_excel(
+
+                    BytesIO(
+
+                        f.read()
+
+                    )
+
+                )
+
+    # ------------------------------------------------------
+    # EXCEL
+    # ------------------------------------------------------
+
+    else:
+
+        df = pd.read_excel(
+
+            arquivo
 
         )
 
-    ]
+    # ------------------------------------------------------
+    # RENOMEAR COLUNAS
+    # ------------------------------------------------------
 
-    temp = pd.DataFrame()
+    novas_colunas = {}
 
-    temp["RA"] = df["NR RA"]
+    for coluna in df.columns:
 
-    temp["NOME"] = df["Nome"]
+        if coluna not in [
 
-    temp["TURMA"] = ""
+            "RA",
 
-    temp[f"{prefixo}_MAT"] = df["MAT"]
+            "NOME",
 
-    temp[f"{prefixo}_LP"] = df["PORT"]
+            "TURMA",
 
-    temp[f"{prefixo}_MAT_STATUS"] = (
+            "SERIE"
 
-        temp[f"{prefixo}_MAT"]
+        ]:
 
-        .apply(
+            novas_colunas[coluna] = (
 
-            definir_status
+                prefixo
 
-        )
+                +
+
+                "_"
+
+                +
+
+                coluna
+
+            )
+
+    df.rename(
+
+        columns=novas_colunas,
+
+        inplace=True
 
     )
 
-    temp[f"{prefixo}_LP_STATUS"] = (
-
-        temp[f"{prefixo}_LP"]
-
-        .apply(
-
-            definir_status
-
-        )
-
-    )
-
-    temp["TURMA_PAD"] = (
-
-        temp["TURMA"]
-
-        .apply(
-
-            padronizar_turma
-
-        )
-
-    )
-
-    temp["CHAVE_MERGE"] = (
-
-        temp.apply(
-
-            lambda x:
-
-            criar_chave(
-
-                x["NOME"],
-
-                x["TURMA"]
-
-            ),
-
-            axis=1
-
-        )
-
-    )
-
-    return temp
+    return df
