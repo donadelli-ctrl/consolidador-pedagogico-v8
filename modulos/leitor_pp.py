@@ -97,12 +97,12 @@ def ler_PP(
         )
 
     # ======================================================
-    # PADRONIZAR COLUNAS
+    # PADRONIZAR NOMES
     # ======================================================
 
     df.columns = [
 
-        str(col).upper()
+        str(col).upper().strip()
 
         for col in df.columns
 
@@ -143,5 +143,51 @@ def ler_PP(
             .str.strip()
 
         )
+
+    # ======================================================
+    # ACRESCENTAR PREFIXO
+    # ======================================================
+
+    colunas_fixas = [
+
+        "RA",
+
+        "NOME",
+
+        "TURMA",
+
+        "SERIE",
+
+        "CHAVE_MERGE"
+
+    ]
+
+    novas_colunas = {}
+
+    for coluna in df.columns:
+
+        if coluna not in colunas_fixas:
+
+            novas_colunas[coluna] = (
+
+                prefixo
+
+                +
+
+                "_"
+
+                +
+
+                coluna
+
+            )
+
+    df.rename(
+
+        columns=novas_colunas,
+
+        inplace=True
+
+    )
 
     return df
