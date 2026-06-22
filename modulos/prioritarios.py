@@ -1,4 +1,4 @@
-# ==========================================================
+  # ==========================================================
 # PRIORITÁRIOS
 # ==========================================================
 
@@ -67,6 +67,22 @@ def obter_prioritarios(
 
 ):
 
+    # ------------------------------------------------------
+    # GARANTIR EXISTÊNCIA DAS COLUNAS
+    # ------------------------------------------------------
+
+    if coluna_lp not in base.columns:
+
+        base[coluna_lp] = ""
+
+    if coluna_mat not in base.columns:
+
+        base[coluna_mat] = ""
+
+    # ------------------------------------------------------
+    # PRIORIDADE
+    # ------------------------------------------------------
+
     base["PRIORIDADE"] = (
 
         base
@@ -105,28 +121,58 @@ def obter_prioritarios(
 
     )
 
-    prioritarios = (
+    # ------------------------------------------------------
+    # ORDENAÇÃO
+    # ------------------------------------------------------
 
-        prioritarios
+    colunas_ordem = []
 
-        .sort_values(
+    if "TURMA_PAD" in prioritarios.columns:
 
-            [
+        colunas_ordem.append(
 
-                "TURMA_PAD",
-
-                "NOME"
-
-            ]
+            "TURMA_PAD"
 
         )
 
-        .reset_index(
+    elif "TURMA" in prioritarios.columns:
 
-            drop=True
+        colunas_ordem.append(
+
+            "TURMA"
 
         )
 
-    )
+    if "NOME" in prioritarios.columns:
+
+        colunas_ordem.append(
+
+            "NOME"
+
+        )
+
+    if len(
+
+        colunas_ordem
+
+    ) > 0:
+
+        prioritarios = (
+
+            prioritarios
+
+            .sort_values(
+
+                colunas_ordem
+
+            )
+
+            .reset_index(
+
+                drop=True
+
+            )
+
+        )
 
     return prioritarios
