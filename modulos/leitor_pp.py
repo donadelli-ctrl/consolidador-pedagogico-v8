@@ -1,25 +1,20 @@
-import pandas as pd
+import os
 import zipfile
-
 from io import BytesIO
+
+import pandas as pd
 
 
 # ==========================================================
 # LEITOR PROVA PAULISTA
 # ==========================================================
 
-def ler_PP(
-
-    arquivo,
-
-    prefixo
-
-):
+def ler_PP(arquivo, prefixo):
 
     lista_df = []
 
     # ======================================================
-    # LEITURA ZIP
+    # ZIP
     # ======================================================
 
     if arquivo.name.lower().endswith(".zip"):
@@ -32,72 +27,64 @@ def ler_PP(
 
                 for arq in z.namelist()
 
-                if arq.lower().endswith(
-
-                    (".xlsx", ".xlsm")
-
-                )
+                if arq.lower().endswith((".xlsx", ".xlsm"))
 
             ]
 
-            if len(arquivos_excel) == 0:
+            if not arquivos_excel:
 
-                raise Exception(
-
-                    "Nenhum Excel encontrado dentro do ZIP."
-
-                )
+                raise Exception("Nenhum arquivo Excel encontrado dentro do ZIP.")
 
             for excel in arquivos_excel:
 
                 with z.open(excel) as f:
 
-                    df = pd.read_excel(
+                    df = pd.read_excel(BytesIO(f.read()))
 
-                        BytesIO(
+                    # --------------------------------------
+                    # TURMA = NOME DO ARQUIVO
+                    # --------------------------------------
 
-                            f.read()
+                    turma = os.path.splitext(
+                        os.path.basename(excel)
+                    )[0].strip()
 
-                        )
-
-                    )
+                    df["TURMA"] = turma
 
                     lista_df.append(df)
 
+    # ======================================================
+    # EXCEL
+    # ======================================================
+
     else:
 
-        lista_df.append(
+        df = pd.read_excel(arquivo)
 
-            pd.read_excel(arquivo)
+        df["TURMA"] = ""
 
-        )
+        lista_df.append(df)
 
     # ======================================================
     # UNIR TODAS AS TURMAS
     # ======================================================
 
     df = pd.concat(
-
         lista_df,
-
         ignore_index=True
-
     )
 
     # ======================================================
-    # PADRONIZAÇÃO
+    # PADRONIZAR COLUNAS
     # ======================================================
 
     df.columns = [
-
         str(col).strip()
-
         for col in df.columns
-
     ]
 
     # ======================================================
-    # RENOMEAR COLUNAS DA SEDUC
+    # RENOMEAR COLUNAS
     # ======================================================
 
     renomear = {
@@ -106,12 +93,6 @@ def ler_PP(
 
         "Nome": "NOME",
 
-        "NOME": "NOME",
-
-        "Turma": "TURMA",
-
-        "TURMA": "TURMA",
-
         "PORT": f"{prefixo}_LP_STATUS",
 
         "MAT": f"{prefixo}_MAT_STATUS"
@@ -119,11 +100,8 @@ def ler_PP(
     }
 
     df.rename(
-
         columns=renomear,
-
         inplace=True
-
     )
 
     # ======================================================
