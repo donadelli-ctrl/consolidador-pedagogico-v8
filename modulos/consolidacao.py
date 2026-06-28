@@ -7,7 +7,7 @@ import pandas as pd
 
 def consolidar_base(
 
-    df_ADE,
+    df_ADE=None,
 
     df_PP1=None,
 
@@ -20,10 +20,10 @@ def consolidar_base(
 ):
 
     # ======================================================
-    # LISTA DE BASES
+    # LISTA DAS BASES
     # ======================================================
 
-    lista_bases = [
+    lista = [
 
         df_ADE,
 
@@ -38,12 +38,12 @@ def consolidar_base(
     ]
 
     # ======================================================
-    # DEFINIR BASE INICIAL
+    # DEFINIR BASE PRINCIPAL
     # ======================================================
 
     base = None
 
-    for df in lista_bases:
+    for df in lista:
 
         if (
 
@@ -68,20 +68,16 @@ def consolidar_base(
         return pd.DataFrame()
 
     # ======================================================
-    # CONSOLIDAÇÃO
+    # MERGE DAS DEMAIS BASES
     # ======================================================
 
-    for df in lista_bases:
+    for df in lista:
 
-        if (
+        if df is None:
 
-            df is None
+            continue
 
-            or
-
-            df.empty
-
-        ):
+        if df.empty:
 
             continue
 
@@ -93,9 +89,55 @@ def consolidar_base(
 
             continue
 
+        # ----------------------------------------------
+        # REMOVER COLUNAS DUPLICADAS
+        # ----------------------------------------------
+
+        colunas_remover = [
+
+            coluna
+
+            for coluna in [
+
+                "RA",
+
+                "NOME",
+
+                "TURMA"
+
+            ]
+
+            if coluna in df.columns
+
+        ]
+
+        df_merge = df.drop(
+
+            columns=colunas_remover,
+
+            errors="ignore"
+
+        )
+
+        # ----------------------------------------------
+        # GARANTIR COLUNAS ÚNICAS
+        # ----------------------------------------------
+
+        df_merge = df_merge.loc[
+
+            :,
+
+            ~df_merge.columns.duplicated()
+
+        ]
+
+        # ----------------------------------------------
+        # MERGE
+        # ----------------------------------------------
+
         base = base.merge(
 
-            df,
+            df_merge,
 
             on="CHAVE_MERGE",
 
