@@ -118,66 +118,78 @@ def gerar_evolucao(
     df = base.copy()
 
     # ------------------------------------------------------
-    # LP
+    # GARANTIR COLUNAS
+    # ------------------------------------------------------
+
+    for coluna in [
+
+        "ADE_LP",
+
+        "ADE_MAT",
+
+        "PP2_LP_STATUS",
+
+        "PP2_MAT_STATUS",
+
+        "PP3_LP_STATUS",
+
+        "PP3_MAT_STATUS"
+
+    ]:
+
+        if coluna not in df.columns:
+
+            df[coluna] = ""
+
+    # ------------------------------------------------------
+    # DEFINIR COLUNAS FINAIS
     # ------------------------------------------------------
 
     coluna_lp_final = "PP2_LP_STATUS"
 
-    if "PP3_LP_STATUS" in df.columns:
+    if "PP3_LP_STATUS" in df.columns and df["PP3_LP_STATUS"].notna().any():
 
         coluna_lp_final = "PP3_LP_STATUS"
 
-    df["EVOL_LP"] = (
+    coluna_mat_final = "PP2_MAT_STATUS"
 
-        df
+    if "PP3_MAT_STATUS" in df.columns and df["PP3_MAT_STATUS"].notna().any():
 
-        .apply(
+        coluna_mat_final = "PP3_MAT_STATUS"
 
-            lambda x:
+    # ------------------------------------------------------
+    # EVOLUÇÃO LP
+    # ------------------------------------------------------
 
-            calcular_evolucao(
+    df["EVOL_LP"] = df.apply(
 
-                x["ADE_LP"],
+        lambda x: calcular_evolucao(
 
-                x[coluna_lp_final]
+            x["ADE_LP"],
 
-            ),
+            x[coluna_lp_final]
 
-            axis=1
+        ),
 
-        )
+        axis=1
 
     )
 
     # ------------------------------------------------------
-    # MAT
+    # EVOLUÇÃO MAT
     # ------------------------------------------------------
 
-    coluna_mat_final = "PP2_MAT_STATUS"
+    df["EVOL_MAT"] = df.apply(
 
-    if "PP3_MAT_STATUS" in df.columns:
+        lambda x: calcular_evolucao(
 
-        coluna_mat_final = "PP3_MAT_STATUS"
+            x["ADE_MAT"],
 
-    df["EVOL_MAT"] = (
+            x[coluna_mat_final]
 
-        df
+        ),
 
-        .apply(
-
-            lambda x:
-
-            calcular_evolucao(
-
-                x["ADE_MAT"],
-
-                x[coluna_mat_final]
-
-            ),
-
-            axis=1
-
-        )
+        axis=1
 
     )
 
@@ -185,53 +197,39 @@ def gerar_evolucao(
     # SITUAÇÃO
     # ------------------------------------------------------
 
-    df["SITUACAO"] = (
+    df["SITUACAO"] = df.apply(
 
-        df
+        lambda x: definir_situacao(
 
-        .apply(
+            x[coluna_lp_final],
 
-            lambda x:
+            x[coluna_mat_final]
 
-            definir_situacao(
+        ),
 
-                x[coluna_lp_final],
-
-                x[coluna_mat_final]
-
-            ),
-
-            axis=1
-
-        )
+        axis=1
 
     )
 
-    evolucao = (
+    coluna_turma = "TURMA_PAD"
 
-        df
+    if coluna_turma not in df.columns:
 
-        [
+        coluna_turma = "TURMA"
 
-            [
+    evolucao = df[[
 
-                "TURMA_PAD",
+        coluna_turma,
 
-                "NOME",
+        "NOME",
 
-                "EVOL_LP",
+        "EVOL_LP",
 
-                "EVOL_MAT",
+        "EVOL_MAT",
 
-                "SITUACAO"
+        "SITUACAO"
 
-            ]
-
-        ]
-
-        .copy()
-
-    )
+    ]].copy()
 
     evolucao.columns = [
 
