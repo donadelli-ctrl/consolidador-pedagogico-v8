@@ -24,115 +24,63 @@ def montar_abas(
     # PAINEL ESCOLA
     # ======================================================
 
-    abas["PAINEL_ESCOLA"] = (
-
-        painel_escola
-
-        .copy()
-
-    )
+    abas["PAINEL_ESCOLA"] = painel_escola.copy()
 
     # ======================================================
     # RESUMO GERAL
     # ======================================================
 
-    resumo_geral = (
-
-        base_final
-
-        .copy()
-
-    )
-
-    abas["RESUMO_GERAL"] = (
-
-        resumo_geral
-
-    )
+    abas["RESUMO_GERAL"] = base_final.copy()
 
     # ======================================================
     # ESCOLA EM NÚMEROS
     # ======================================================
 
-    abas["ESCOLA_EM_NUMEROS"] = (
-
-        resumo_por_turma
-
-        .copy()
-
-    )
-
-    # ======================================================
-    # MONITORAMENTO AB
-    # ======================================================
-
-    monitoramento_ab = (
-
-        prioritarios
-
-        .copy()
-
-    )
-
-    abas["MONITORAMENTO_AB"] = (
-
-        monitoramento_ab
-
-    )
-
-    # ======================================================
-    # SEM PARTICIPAÇÃO
-    # ======================================================
-
-    abas["SEM_PARTICIPACAO"] = (
-
-        sem_participacao
-
-        .copy()
-
-    )
+    abas["ESCOLA_EM_NUMEROS"] = resumo_por_turma.copy()
 
     # ======================================================
     # EVOLUÇÃO
     # ======================================================
 
-    abas["EVOLUCAO"] = (
+    abas["EVOLUCAO"] = evolucao.copy()
 
-        evolucao
+    # ======================================================
+    # MONITORAMENTO
+    # ======================================================
 
-        .copy()
+    abas["MONITORAMENTO_AB"] = prioritarios.copy()
 
-    )
+    # ======================================================
+    # ESTUDANTES PRIORITÁRIOS
+    # ======================================================
+
+    abas["ESTUDANTES_PRIORITARIOS"] = prioritarios.copy()
+
+    # ======================================================
+    # SEM PARTICIPAÇÃO
+    # ======================================================
+
+    abas["SEM_PARTICIPACAO"] = sem_participacao.copy()
 
     # ======================================================
     # ABAS DAS TURMAS
     # ======================================================
 
-    if (
+    coluna_turma = "TURMA_PAD"
 
-        "TURMA_PAD"
+    if coluna_turma not in base_final.columns:
 
-        in
+        coluna_turma = "TURMA"
 
-        base_final.columns
+    if coluna_turma in base_final.columns:
 
-    ):
+        turmas = sorted(
 
-        turmas = (
+            base_final[coluna_turma]
 
-            sorted(
+            .dropna()
 
-                base_final[
-
-                    "TURMA_PAD"
-
-                ]
-
-                .dropna()
-
-                .unique()
-
-            )
+            .unique()
 
         )
 
@@ -140,19 +88,9 @@ def montar_abas(
 
             df_turma = (
 
-                base_final
+                base_final[
 
-                [
-
-                    base_final[
-
-                        "TURMA_PAD"
-
-                    ]
-
-                    ==
-
-                    turma
+                    base_final[coluna_turma] == turma
 
                 ]
 
@@ -160,30 +98,26 @@ def montar_abas(
 
             )
 
-            abas[
+            if "NOME" in df_turma.columns:
 
-                str(
+                df_turma = (
 
-                    turma
+                    df_turma
 
-                )
+                    .sort_values(
 
-            ] = (
+                        "NOME"
 
-                df_turma
+                    )
 
-                .sort_values(
+                    .reset_index(
 
-                    "NOME"
+                        drop=True
 
-                )
-
-                .reset_index(
-
-                    drop=True
+                    )
 
                 )
 
-            )
+            abas[str(turma)] = df_turma
 
     return abas
