@@ -16,15 +16,13 @@ def ler_PP(
 
 ):
 
-    nome = arquivo.name.lower()
+    lista_df = []
 
     # ======================================================
-    # LEITURA DE ARQUIVO ZIP
+    # LEITURA ZIP
     # ======================================================
 
-    if nome.endswith(".zip"):
-
-        lista_df = []
+    if arquivo.name.lower().endswith(".zip"):
 
         with zipfile.ZipFile(arquivo) as z:
 
@@ -36,13 +34,7 @@ def ler_PP(
 
                 if arq.lower().endswith(
 
-                    (
-
-                        ".xlsx",
-
-                        ".xlsm"
-
-                    )
+                    (".xlsx", ".xlsm")
 
                 )
 
@@ -52,7 +44,7 @@ def ler_PP(
 
                 raise Exception(
 
-                    "Nenhum arquivo Excel encontrado dentro do ZIP."
+                    "Nenhum Excel encontrado dentro do ZIP."
 
                 )
 
@@ -60,125 +52,85 @@ def ler_PP(
 
                 with z.open(excel) as f:
 
-                    try:
+                    df = pd.read_excel(
 
-                        df = pd.read_excel(
+                        BytesIO(
 
-                            BytesIO(
-
-                                f.read()
-
-                            )
+                            f.read()
 
                         )
 
-                        lista_df.append(df)
+                    )
 
-                    except Exception:
-
-                        continue
-
-        if len(lista_df) == 0:
-
-            raise Exception(
-
-                "Nenhuma planilha válida foi encontrada no arquivo ZIP."
-
-            )
-
-        df = pd.concat(
-
-            lista_df,
-
-            ignore_index=True
-
-        )
-
-    # ======================================================
-    # LEITURA DE EXCEL
-    # ======================================================
+                    lista_df.append(df)
 
     else:
 
-        df = pd.read_excel(
+        lista_df.append(
 
-            arquivo
+            pd.read_excel(arquivo)
 
         )
 
     # ======================================================
-    # LIMPEZA
+    # UNIR TODAS AS TURMAS
     # ======================================================
 
-    df.dropna(
+    df = pd.concat(
 
-        how="all",
+        lista_df,
 
-        inplace=True
-
-    )
-
-    df.reset_index(
-
-        drop=True,
-
-        inplace=True
+        ignore_index=True
 
     )
 
     # ======================================================
-    # PADRONIZAR NOMES DAS COLUNAS
+    # PADRONIZAÇÃO
     # ======================================================
 
     df.columns = [
 
-        str(col).strip().upper()
+        str(col).strip()
 
         for col in df.columns
 
     ]
 
     # ======================================================
-    # CHAVE DE MERGE
+    # RENOMEAR COLUNAS DA SEDUC
     # ======================================================
 
-    if (
+    renomear = {
 
-        "RA" in df.columns
+        "NR RA": "RA",
 
-        and
+        "Nome": "NOME",
 
-        "TURMA" in df.columns
+        "NOME": "NOME",
 
-    ):
+        "Turma": "TURMA",
 
-        df["CHAVE_MERGE"] = (
+        "TURMA": "TURMA",
 
-            df["RA"]
+        "PORT": f"{prefixo}_LP_STATUS",
 
-            .astype(str)
+        "MAT": f"{prefixo}_MAT_STATUS"
 
-            .str.strip()
+    }
 
-            +
+    df.rename(
 
-            "_"
+        columns=renomear,
 
-            +
+        inplace=True
 
-            df["TURMA"]
-
-            .astype(str)
-
-            .str.strip()
-
-        )
+    )
 
     # ======================================================
-    # ACRESCENTAR PREFIXO ÀS COLUNAS
+    # GARANTIR COLUNAS
     # ======================================================
 
-    colunas_fixas = [
+    obrigatorias = [
 
         "RA",
 
@@ -186,38 +138,66 @@ def ler_PP(
 
         "TURMA",
 
-        "SERIE",
+        f"{prefixo}_LP_STATUS",
 
-        "CHAVE_MERGE"
+        f"{prefixo}_MAT_STATUS"
 
     ]
 
-    novas_colunas = {}
+    for coluna in obrigatorias:
 
-    for coluna in df.columns:
+        if coluna not in df.columns:
 
-        if coluna not in colunas_fixas:
+            df[coluna] = ""
 
-            novas_colunas[coluna] = (
+    # ======================================================
+    # LIMPEZA
+    # ======================================================
 
-                prefixo
+    df["RA"] = df["RA"].astype(str).str.strip()
 
-                +
+    df["NOME"] = df["NOME"].astype(str).str.strip()
 
-                "_"
+    df["TURMA"] = df["TURMA"].astype(str).str.strip()
 
-                +
+    # ======================================================
+    # CHAVE
+    # ======================================================
 
-                coluna
+    df["CHAVE_MERGE"] = (
 
-            )
+        df["RA"]
 
-    df.rename(
+        +
 
-        columns=novas_colunas,
+        "_"
 
-        inplace=True
+        +
+
+        df["TURMA"]
 
     )
 
-    return df
+    # ======================================================
+    # RETORNO
+    # ======================================================
+
+    return df[
+
+        [
+
+            "RA",
+
+            "NOME",
+
+            "TURMA",
+
+            f"{prefixo}_LP_STATUS",
+
+            f"{prefixo}_MAT_STATUS",
+
+            "CHAVE_MERGE"
+
+        ]
+
+    ]
