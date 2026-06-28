@@ -5,20 +5,18 @@ from io import BytesIO
 
 
 # ==========================================================
-# LEITOR ADE / AVD / ADP
+# LEITOR AVD / AVDE / ADP
 # ==========================================================
 
 def ler_ADE(arquivo):
 
-    nome = arquivo.name.lower()
+    lista_df = []
 
     # ======================================================
-    # LEITURA DE ARQUIVO ZIP
+    # LEITURA ZIP
     # ======================================================
 
-    if nome.endswith(".zip"):
-
-        lista_df = []
+    if arquivo.name.lower().endswith(".zip"):
 
         with zipfile.ZipFile(arquivo) as z:
 
@@ -28,144 +26,149 @@ def ler_ADE(arquivo):
 
                 for arq in z.namelist()
 
-                if arq.lower().endswith(
-
-                    (
-
-                        ".xlsx",
-
-                        ".xlsm"
-
-                    )
-
-                )
+                if arq.lower().endswith((".xlsx", ".xlsm"))
 
             ]
 
             if len(arquivos_excel) == 0:
 
-                raise Exception(
-
-                    "Nenhum arquivo Excel encontrado dentro do ZIP."
-
-                )
+                raise Exception("Nenhum arquivo Excel encontrado no ZIP.")
 
             for excel in arquivos_excel:
 
                 with z.open(excel) as f:
 
-                    try:
+                    df = pd.read_excel(BytesIO(f.read()))
 
-                        df = pd.read_excel(
-
-                            BytesIO(
-
-                                f.read()
-
-                            )
-
-                        )
-
-                        lista_df.append(df)
-
-                    except Exception:
-
-                        continue
-
-        if len(lista_df) == 0:
-
-            raise Exception(
-
-                "Nenhuma planilha válida foi encontrada no arquivo ZIP."
-
-            )
-
-        df = pd.concat(
-
-            lista_df,
-
-            ignore_index=True
-
-        )
+                    lista_df.append(df)
 
     # ======================================================
-    # LEITURA DE EXCEL
+    # LEITURA EXCEL
     # ======================================================
 
     else:
 
-        df = pd.read_excel(
+        lista_df.append(pd.read_excel(arquivo))
 
-            arquivo
+    # ======================================================
+    # UNIR TODAS AS TURMAS
+    # ======================================================
 
-        )
+    df = pd.concat(
+
+        lista_df,
+
+        ignore_index=True
+
+    )
 
     # ======================================================
     # LIMPEZA
     # ======================================================
 
-    df.dropna(
-
-        how="all",
-
-        inplace=True
-
-    )
-
-    df.reset_index(
-
-        drop=True,
-
-        inplace=True
-
-    )
-
-    # ======================================================
-    # PADRONIZAÇÃO DAS COLUNAS
-    # ======================================================
-
     df.columns = [
 
-        str(col).strip().upper()
+        str(col).strip()
 
         for col in df.columns
 
     ]
 
     # ======================================================
-    # CHAVE DE CONSOLIDAÇÃO
+    # RENOMEAR COLUNAS DA SEDUC
     # ======================================================
 
-    if (
+    renomear = {
 
-        "RA" in df.columns
+        "Id": "RA",
+        "Id ": "RA",
+        "ESTUDANTE": "NOME",
+        "TURMA": "TURMA",
+        "Status": "ADE_LP",
+        "Status.1": "ADE_MAT"
 
-        and
+    }
 
-        "TURMA" in df.columns
+    df.rename(
 
-    ):
+        columns=renomear,
 
-        df["CHAVE_MERGE"] = (
+        inplace=True
 
-            df["RA"]
+    )
 
-            .astype(str)
+    # ======================================================
+    # GARANTIR COLUNAS
+    # ======================================================
 
-            .str.strip()
+    obrigatorias = [
 
-            +
+        "RA",
 
-            "_"
+        "NOME",
 
-            +
+        "TURMA",
 
-            df["TURMA"]
+        "ADE_LP",
 
-            .astype(str)
+        "ADE_MAT"
 
-            .str.strip()
+    ]
 
-        )
+    for coluna in obrigatorias:
 
-    return df
+        if coluna not in df.columns:
+
+            df[coluna] = ""
+
+    # ======================================================
+    # PADRONIZAÇÃO
+    # ======================================================
+
+    df["RA"] = df["RA"].astype(str).str.strip()
+
+    df["NOME"] = df["NOME"].astype(str).str.strip()
+
+    df["TURMA"] = df["TURMA"].astype(str).str.strip()
+
+    # ======================================================
+    # CHAVE
+    # ======================================================
+
+    df["CHAVE_MERGE"] = (
+
+        df["RA"]
+
+        +
+
+        "_"
+
+        +
+
+        df["TURMA"]
+
+    )
+
+    # ======================================================
+    # COLUNAS FINAIS
+    # ======================================================
+
+    return df[
+
+        [
+
+            "RA",
+
+            "NOME",
+
+            "TURMA",
+
+            "ADE_LP",
+
+            "ADE_MAT",
+
+            "CHAVE_MERGE"
+
+        ]
+
+    ]
