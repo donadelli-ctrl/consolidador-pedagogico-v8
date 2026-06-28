@@ -127,9 +127,25 @@ if gerar:
             df_ADP = ler_ADE(arquivo_ADP)
 
         if arquivo_PP3 is not None:
-            df_PP3 = ler_PP(arquivo_PP3, "PP3")
+    df_PP3 = ler_PP(arquivo_PP3, "PP3")
 
-        st.success("Arquivos carregados.")
+st.success("Arquivos carregados.")
+
+# ==================================================
+# DIAGNÓSTICO PP1
+# ==================================================
+
+if df_PP1 is not None:
+
+    st.subheader("DIAGNÓSTICO PP1")
+
+    st.write("COLUNAS DO PP1")
+
+    st.write(df_PP1.columns.tolist())
+
+    st.write("PRIMEIROS REGISTROS")
+
+    st.dataframe(df_PP1.head(10))
 
         # --------------------------------------------------
         # CONSOLIDAÇÃO
