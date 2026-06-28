@@ -1,4 +1,4 @@
-  # ==========================================================
+# ==========================================================
 # PRIORITÁRIOS
 # ==========================================================
 
@@ -10,13 +10,16 @@ def definir_prioridade(
 
 ):
 
+    status_lp = str(status_lp).strip().upper()
+    status_mat = str(status_mat).strip().upper()
+
     lp_ab = (
 
         status_lp
 
         ==
 
-        "Abaixo do Básico"
+        "ABAIXO DO BÁSICO".upper()
 
     )
 
@@ -26,7 +29,7 @@ def definir_prioridade(
 
         ==
 
-        "Abaixo do Básico"
+        "ABAIXO DO BÁSICO".upper()
 
     )
 
@@ -85,9 +88,7 @@ def obter_prioritarios(
 
     base["PRIORIDADE"] = (
 
-        base
-
-        .apply(
+        base.apply(
 
             lambda x:
 
@@ -107,13 +108,9 @@ def obter_prioritarios(
 
     prioritarios = (
 
-        base
+        base[
 
-        [
-
-            base["PRIORIDADE"]
-
-            .notna()
+            base["PRIORIDADE"].notna()
 
         ]
 
@@ -151,11 +148,7 @@ def obter_prioritarios(
 
         )
 
-    if len(
-
-        colunas_ordem
-
-    ) > 0:
+    if len(colunas_ordem) > 0:
 
         prioritarios = (
 
@@ -172,6 +165,16 @@ def obter_prioritarios(
                 drop=True
 
             )
+
+        )
+
+    else:
+
+        prioritarios.reset_index(
+
+            drop=True,
+
+            inplace=True
 
         )
 
