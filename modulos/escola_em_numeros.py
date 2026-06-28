@@ -13,13 +13,35 @@ def gerar_resumo_por_turma(
 
 ):
 
+    # ------------------------------------------------------
+    # TURMA
+    # ------------------------------------------------------
+
+    coluna_turma = "TURMA_PAD"
+
+    if coluna_turma not in base.columns:
+
+        coluna_turma = "TURMA"
+
+    # ------------------------------------------------------
+    # GARANTIR SITUAÇÃO
+    # ------------------------------------------------------
+
+    if "SITUACAO" not in base.columns:
+
+        base["SITUACAO"] = ""
+
+    # ------------------------------------------------------
+    # RESUMO
+    # ------------------------------------------------------
+
     resumo = (
 
         base
 
         .groupby(
 
-            "TURMA_PAD"
+            coluna_turma
 
         )
 
@@ -39,21 +61,15 @@ def gerar_resumo_por_turma(
 
     atencao = (
 
-        base
+        base[
 
-        [
-
-            base["SITUACAO"]
-
-            ==
-
-            "Atenção"
+            base["SITUACAO"] == "Atenção"
 
         ]
 
         .groupby(
 
-            "TURMA_PAD"
+            coluna_turma
 
         )
 
@@ -73,21 +89,15 @@ def gerar_resumo_por_turma(
 
     acompanhamento = (
 
-        base
+        base[
 
-        [
-
-            base["SITUACAO"]
-
-            ==
-
-            "Acompanhamento"
+            base["SITUACAO"] == "Acompanhamento"
 
         ]
 
         .groupby(
 
-            "TURMA_PAD"
+            coluna_turma
 
         )
 
@@ -107,21 +117,15 @@ def gerar_resumo_por_turma(
 
     adequado = (
 
-        base
+        base[
 
-        [
-
-            base["SITUACAO"]
-
-            ==
-
-            "Adequado"
+            base["SITUACAO"] == "Adequado"
 
         ]
 
         .groupby(
 
-            "TURMA_PAD"
+            coluna_turma
 
         )
 
@@ -139,13 +143,17 @@ def gerar_resumo_por_turma(
     # PRIORITÁRIOS
     # ------------------------------------------------------
 
+    if coluna_turma not in prioritarios.columns:
+
+        prioritarios[coluna_turma] = ""
+
     prioridade = (
 
         prioritarios
 
         .groupby(
 
-            "TURMA_PAD"
+            coluna_turma
 
         )
 
@@ -167,7 +175,7 @@ def gerar_resumo_por_turma(
 
             atencao,
 
-            on="TURMA_PAD",
+            on=coluna_turma,
 
             how="left"
 
@@ -177,7 +185,7 @@ def gerar_resumo_por_turma(
 
             acompanhamento,
 
-            on="TURMA_PAD",
+            on=coluna_turma,
 
             how="left"
 
@@ -187,7 +195,7 @@ def gerar_resumo_por_turma(
 
             adequado,
 
-            on="TURMA_PAD",
+            on=coluna_turma,
 
             how="left"
 
@@ -197,7 +205,7 @@ def gerar_resumo_por_turma(
 
             prioridade,
 
-            on="TURMA_PAD",
+            on=coluna_turma,
 
             how="left"
 
@@ -213,15 +221,17 @@ def gerar_resumo_por_turma(
 
     resumo["PERC_PRIORITARIOS"] = (
 
-        100
-
-        *
-
         resumo["PRIORITARIOS"]
 
-        /
+        .div(
 
-        resumo["ESTUDANTES"]
+            resumo["ESTUDANTES"]
+
+        )
+
+        .fillna(0)
+
+        * 100
 
     ).round(
 
@@ -244,6 +254,16 @@ def gerar_painel_escola(
 
 ):
 
+    if "SITUACAO" not in base.columns:
+
+        base["SITUACAO"] = ""
+
+    coluna_turma = "TURMA_PAD"
+
+    if coluna_turma not in base.columns:
+
+        coluna_turma = "TURMA"
+
     painel = pd.DataFrame({
 
         "INDICADOR":[
@@ -262,47 +282,15 @@ def gerar_painel_escola(
 
         "QUANTIDADE":[
 
-            len(
+            len(base),
 
-                base
+            base[coluna_turma].nunique(),
 
-            ),
+            (base["SITUACAO"]=="Atenção").sum(),
 
-            base[
+            (base["SITUACAO"]=="Acompanhamento").sum(),
 
-                "TURMA_PAD"
-
-            ].nunique(),
-
-            (
-
-                base["SITUACAO"]
-
-                ==
-
-                "Atenção"
-
-            ).sum(),
-
-            (
-
-                base["SITUACAO"]
-
-                ==
-
-                "Acompanhamento"
-
-            ).sum(),
-
-            (
-
-                base["SITUACAO"]
-
-                ==
-
-                "Adequado"
-
-            ).sum()
+            (base["SITUACAO"]=="Adequado").sum()
 
         ]
 
