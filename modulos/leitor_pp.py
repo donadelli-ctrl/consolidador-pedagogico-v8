@@ -6,6 +6,34 @@ import pandas as pd
 
 
 # ==========================================================
+# CLASSIFICAÇÃO PROVA PAULISTA
+# ==========================================================
+
+def classificar_pp(valor):
+
+    if pd.isna(valor):
+        return ""
+
+    try:
+        valor = float(valor)
+
+    except:
+        return ""
+
+    if valor < 0.50:
+        return "Abaixo do Básico"
+
+    elif valor < 0.70:
+        return "Básico"
+
+    elif valor < 0.90:
+        return "Adequado"
+
+    else:
+        return "Proficiente"
+
+
+# ==========================================================
 # LEITOR PROVA PAULISTA
 # ==========================================================
 
@@ -27,35 +55,49 @@ def ler_PP(arquivo, prefixo):
 
                 for arq in z.namelist()
 
-                if arq.lower().endswith((".xlsx", ".xlsm"))
+                if arq.lower().endswith(
+
+                    (".xlsx", ".xlsm")
+
+                )
 
             ]
 
-            if not arquivos_excel:
+            if len(arquivos_excel) == 0:
 
-                raise Exception("Nenhum arquivo Excel encontrado dentro do ZIP.")
+                raise Exception(
+
+                    "Nenhum Excel encontrado dentro do ZIP."
+
+                )
 
             for excel in arquivos_excel:
 
                 with z.open(excel) as f:
 
-                    df = pd.read_excel(BytesIO(f.read()))
+                    df = pd.read_excel(
 
-                    # --------------------------------------
+                        BytesIO(
+
+                            f.read()
+
+                        )
+
+                    )
+
+                    # -----------------------------
                     # TURMA = NOME DO ARQUIVO
-                    # --------------------------------------
+                    # -----------------------------
 
                     turma = os.path.splitext(
+
                         os.path.basename(excel)
+
                     )[0].strip()
 
                     df["TURMA"] = turma
 
                     lista_df.append(df)
-
-    # ======================================================
-    # EXCEL
-    # ======================================================
 
     else:
 
@@ -66,12 +108,15 @@ def ler_PP(arquivo, prefixo):
         lista_df.append(df)
 
     # ======================================================
-    # UNIR TODAS AS TURMAS
+    # JUNTAR TODAS AS TURMAS
     # ======================================================
 
     df = pd.concat(
+
         lista_df,
+
         ignore_index=True
+
     )
 
     # ======================================================
@@ -79,29 +124,31 @@ def ler_PP(arquivo, prefixo):
     # ======================================================
 
     df.columns = [
+
         str(col).strip()
+
         for col in df.columns
+
     ]
 
     # ======================================================
-    # RENOMEAR COLUNAS
+    # RENOMEAR
     # ======================================================
 
     renomear = {
 
         "NR RA": "RA",
 
-        "Nome": "NOME",
-
-        "PORT": f"{prefixo}_LP_STATUS",
-
-        "MAT": f"{prefixo}_MAT_STATUS"
+        "Nome": "NOME"
 
     }
 
     df.rename(
+
         columns=renomear,
+
         inplace=True
+
     )
 
     # ======================================================
@@ -116,9 +163,9 @@ def ler_PP(arquivo, prefixo):
 
         "TURMA",
 
-        f"{prefixo}_LP_STATUS",
+        "PORT",
 
-        f"{prefixo}_MAT_STATUS"
+        "MAT"
 
     ]
 
@@ -126,17 +173,97 @@ def ler_PP(arquivo, prefixo):
 
         if coluna not in df.columns:
 
-            df[coluna] = ""
+            df[coluna] = None
+
+    # ======================================================
+    # CONVERTER PARA NÚMERO
+    # ======================================================
+
+    df["PORT"] = pd.to_numeric(
+
+        df["PORT"],
+
+        errors="coerce"
+
+    )
+
+    df["MAT"] = pd.to_numeric(
+
+        df["MAT"],
+
+        errors="coerce"
+
+    )
+
+    # ======================================================
+    # PERCENTUAIS
+    # ======================================================
+
+    df[f"{prefixo}_LP"] = df["PORT"]
+
+    df[f"{prefixo}_MAT"] = df["MAT"]
+
+    # ======================================================
+    # STATUS
+    # ======================================================
+
+    df[f"{prefixo}_LP_STATUS"] = (
+
+        df["PORT"]
+
+        .apply(
+
+            classificar_pp
+
+        )
+
+    )
+
+    df[f"{prefixo}_MAT_STATUS"] = (
+
+        df["MAT"]
+
+        .apply(
+
+            classificar_pp
+
+        )
+
+    )
 
     # ======================================================
     # LIMPEZA
     # ======================================================
 
-    df["RA"] = df["RA"].astype(str).str.strip()
+    df["RA"] = (
 
-    df["NOME"] = df["NOME"].astype(str).str.strip()
+        df["RA"]
 
-    df["TURMA"] = df["TURMA"].astype(str).str.strip()
+        .astype(str)
+
+        .str.strip()
+
+    )
+
+    df["NOME"] = (
+
+        df["NOME"]
+
+        .astype(str)
+
+        .str.strip()
+
+    )
+
+    df["TURMA"] = (
+
+        df["TURMA"]
+
+        .astype(str)
+
+        .str.strip()
+
+    )
 
     # ======================================================
     # CHAVE
@@ -170,7 +297,11 @@ def ler_PP(arquivo, prefixo):
 
             "TURMA",
 
+            f"{prefixo}_LP",
+
             f"{prefixo}_LP_STATUS",
+
+            f"{prefixo}_MAT",
 
             f"{prefixo}_MAT_STATUS",
 
