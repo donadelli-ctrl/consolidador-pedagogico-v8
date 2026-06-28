@@ -3,6 +3,8 @@ import zipfile
 
 from io import BytesIO
 
+from modulos.padronizacao import padronizar_turma
+
 
 # ==========================================================
 # LEITOR AVD / AVDE / ADP
@@ -42,10 +44,6 @@ def ler_ADE(arquivo):
 
                     lista_df.append(df)
 
-    # ======================================================
-    # LEITURA EXCEL
-    # ======================================================
-
     else:
 
         lista_df.append(pd.read_excel(arquivo))
@@ -54,16 +52,10 @@ def ler_ADE(arquivo):
     # UNIR TODAS AS TURMAS
     # ======================================================
 
-    df = pd.concat(
-
-        lista_df,
-
-        ignore_index=True
-
-    )
+    df = pd.concat(lista_df, ignore_index=True)
 
     # ======================================================
-    # LIMPEZA
+    # PADRONIZAR NOMES DAS COLUNAS
     # ======================================================
 
     df.columns = [
@@ -75,7 +67,7 @@ def ler_ADE(arquivo):
     ]
 
     # ======================================================
-    # RENOMEAR COLUNAS DA SEDUC
+    # RENOMEAR
     # ======================================================
 
     renomear = {
@@ -104,13 +96,9 @@ def ler_ADE(arquivo):
     obrigatorias = [
 
         "RA",
-
         "NOME",
-
         "TURMA",
-
         "ADE_LP",
-
         "ADE_MAT"
 
     ]
@@ -122,14 +110,36 @@ def ler_ADE(arquivo):
             df[coluna] = ""
 
     # ======================================================
-    # PADRONIZAÇÃO
+    # LIMPEZA
     # ======================================================
 
-    df["RA"] = df["RA"].astype(str).str.strip()
+    df["RA"] = (
 
-    df["NOME"] = df["NOME"].astype(str).str.strip()
+        df["RA"]
 
-    df["TURMA"] = df["TURMA"].astype(str).str.strip()
+        .astype(str)
+
+        .str.strip()
+
+    )
+
+    df["NOME"] = (
+
+        df["NOME"]
+
+        .astype(str)
+
+        .str.strip()
+
+    )
+
+    df["TURMA"] = (
+
+        df["TURMA"]
+
+        .apply(padronizar_turma)
+
+    )
 
     # ======================================================
     # CHAVE
@@ -150,7 +160,7 @@ def ler_ADE(arquivo):
     )
 
     # ======================================================
-    # COLUNAS FINAIS
+    # RETORNO
     # ======================================================
 
     return df[
@@ -158,15 +168,10 @@ def ler_ADE(arquivo):
         [
 
             "RA",
-
             "NOME",
-
             "TURMA",
-
             "ADE_LP",
-
             "ADE_MAT",
-
             "CHAVE_MERGE"
 
         ]
