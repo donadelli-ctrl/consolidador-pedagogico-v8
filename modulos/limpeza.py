@@ -9,15 +9,12 @@ def limpar_base(base):
     # ------------------------------------------------------
 
     base = base.loc[
-
         :,
-
         ~base.columns.duplicated()
-
     ]
 
     # ------------------------------------------------------
-    # COLUNAS X E Y
+    # REMOVER COLUNAS _X E _Y
     # ------------------------------------------------------
 
     colunas_remover = [
@@ -47,10 +44,18 @@ def limpar_base(base):
     )
 
     # ------------------------------------------------------
-    # ORDENAR
+    # ORDENAÇÃO
     # ------------------------------------------------------
 
-    if "TURMA_PAD" in base.columns:
+    if (
+
+        "TURMA_PAD" in base.columns
+
+        and
+
+        "NOME" in base.columns
+
+    ):
 
         base = (
 
@@ -73,6 +78,16 @@ def limpar_base(base):
                 drop=True
 
             )
+
+        )
+
+    else:
+
+        base.reset_index(
+
+            drop=True,
+
+            inplace=True
 
         )
 
