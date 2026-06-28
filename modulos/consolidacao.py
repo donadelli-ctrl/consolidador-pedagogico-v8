@@ -20,16 +20,12 @@ def consolidar_base(
 ):
 
     # ======================================================
-    # BASE INICIAL
-    # ======================================================
-
-    base = df_ADE.copy()
-
-    # ======================================================
-    # LISTA DE DATAFRAMES
+    # LISTA DE BASES
     # ======================================================
 
     lista_bases = [
+
+        df_ADE,
 
         df_PP1,
 
@@ -42,8 +38,10 @@ def consolidar_base(
     ]
 
     # ======================================================
-    # CONSOLIDAÇÃO
+    # DEFINIR BASE INICIAL
     # ======================================================
+
+    base = None
 
     for df in lista_bases:
 
@@ -53,72 +51,78 @@ def consolidar_base(
 
             and
 
-            len(df) > 0
+            not df.empty
+
+            and
+
+            "CHAVE_MERGE" in df.columns
 
         ):
 
-            # ----------------------------------------------
-            # VERIFICAR CHAVE
-            # ----------------------------------------------
+            base = df.copy()
 
-            if (
+            break
 
-                "CHAVE_MERGE"
+    if base is None:
 
-                not in df.columns
+        return pd.DataFrame()
 
-            ):
+    # ======================================================
+    # CONSOLIDAÇÃO
+    # ======================================================
 
-                continue
+    for df in lista_bases:
 
-            if (
+        if (
 
-                "CHAVE_MERGE"
+            df is None
 
-                not in base.columns
+            or
 
-            ):
+            df.empty
 
-                continue
+        ):
 
-            base = base.merge(
+            continue
 
-                df,
+        if df is base:
 
-                on="CHAVE_MERGE",
+            continue
 
-                how="outer"
+        if "CHAVE_MERGE" not in df.columns:
 
-            )
+            continue
+
+        base = base.merge(
+
+            df,
+
+            on="CHAVE_MERGE",
+
+            how="outer"
+
+        )
 
     # ======================================================
     # REMOVER DUPLICADOS
     # ======================================================
 
-    if (
+    base = (
 
-        "CHAVE_MERGE"
+        base
 
-        in base.columns
+        .drop_duplicates(
 
-    ):
-
-        base = (
-
-            base
-
-            .drop_duplicates(
-
-                subset="CHAVE_MERGE"
-
-            )
-
-            .reset_index(
-
-                drop=True
-
-            )
+            subset="CHAVE_MERGE"
 
         )
+
+        .reset_index(
+
+            drop=True
+
+        )
+
+    )
 
     return base
