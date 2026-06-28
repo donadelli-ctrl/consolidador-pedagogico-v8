@@ -8,13 +8,9 @@ import pandas as pd
 def consolidar_base(
 
     df_ADE=None,
-
     df_PP1=None,
-
     df_PP2=None,
-
     df_ADP=None,
-
     df_PP3=None
 
 ):
@@ -26,46 +22,60 @@ def consolidar_base(
     lista = [
 
         df_ADE,
-
         df_PP1,
-
         df_PP2,
-
         df_ADP,
-
         df_PP3
 
     ]
 
     # ======================================================
-    # DEFINIR BASE PRINCIPAL
+    # ENCONTRAR A PRIMEIRA BASE VÁLIDA
     # ======================================================
 
-    base = None
+    base_principal = None
 
     for df in lista:
 
         if (
-
             df is not None
-
             and
-
             not df.empty
-
             and
-
             "CHAVE_MERGE" in df.columns
-
         ):
 
-            base = df.copy()
-
+            base_principal = df.copy()
             break
 
-    if base is None:
+    if base_principal is None:
 
         return pd.DataFrame()
+
+    # ======================================================
+    # GARANTIR COLUNAS DA BASE PRINCIPAL
+    # ======================================================
+
+    colunas_identificacao = [
+
+        "CHAVE_MERGE",
+        "RA",
+        "NOME",
+        "TURMA"
+
+    ]
+
+    for coluna in colunas_identificacao:
+
+        if coluna not in base_principal.columns:
+
+            base_principal[coluna] = ""
+
+    # ======================================================
+    # BASE FINAL
+    # ======================================================
+
+    base = base_principal.copy()
 
     # ======================================================
     # MERGE DAS DEMAIS BASES
@@ -81,7 +91,7 @@ def consolidar_base(
 
             continue
 
-        if df is base:
+        if df.equals(base_principal):
 
             continue
 
@@ -90,45 +100,34 @@ def consolidar_base(
             continue
 
         # ----------------------------------------------
-        # REMOVER COLUNAS DUPLICADAS
+        # MANTER SOMENTE CHAVE + RESULTADOS
         # ----------------------------------------------
 
-        colunas_remover = [
+        colunas = [
 
-            coluna
+            c
 
-            for coluna in [
+            for c in df.columns
+
+            if c not in [
 
                 "RA",
-
                 "NOME",
-
                 "TURMA"
 
             ]
 
-            if coluna in df.columns
-
         ]
 
-        df_merge = df.drop(
-
-            columns=colunas_remover,
-
-            errors="ignore"
-
-        )
+        df_merge = df[colunas].copy()
 
         # ----------------------------------------------
-        # GARANTIR COLUNAS ÚNICAS
+        # REMOVER DUPLICADAS
         # ----------------------------------------------
 
         df_merge = df_merge.loc[
-
             :,
-
             ~df_merge.columns.duplicated()
-
         ]
 
         # ----------------------------------------------
@@ -141,7 +140,7 @@ def consolidar_base(
 
             on="CHAVE_MERGE",
 
-            how="outer"
+            how="left"
 
         )
 
