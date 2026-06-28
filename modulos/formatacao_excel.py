@@ -46,22 +46,40 @@ def aplicar_cores(ws):
         )
 
     # ======================================================
-    # EVOLUÇÃO E SITUAÇÃO
+    # FORMATAÇÃO DAS CÉLULAS
     # ======================================================
 
-    for linha in ws.iter_rows():
+    for linha in ws.iter_rows(min_row=2):
 
         for celula in linha:
 
-            valor = str(
+            valor = celula.value
 
-                celula.value
+            celula.alignment = Alignment(
+
+                horizontal="center",
+
+                vertical="center"
 
             )
 
-            # EVOLUÇÃO
+            # ----------------------------------------------
+            # PERCENTUAIS
+            # ----------------------------------------------
 
-            if valor == "Melhorou":
+            if isinstance(valor, (int, float)):
+
+                if 0 <= valor <= 1:
+
+                    celula.number_format = "0.0%"
+
+            texto = str(valor).strip()
+
+            # ----------------------------------------------
+            # EVOLUÇÃO
+            # ----------------------------------------------
+
+            if texto == "Melhorou":
 
                 celula.font = Font(
 
@@ -71,7 +89,7 @@ def aplicar_cores(ws):
 
                 )
 
-            elif valor == "Manteve":
+            elif texto == "Manteve":
 
                 celula.font = Font(
 
@@ -81,7 +99,7 @@ def aplicar_cores(ws):
 
                 )
 
-            elif valor == "Piorou":
+            elif texto == "Piorou":
 
                 celula.font = Font(
 
@@ -91,7 +109,7 @@ def aplicar_cores(ws):
 
                 )
 
-            elif valor == "Sem Comparação":
+            elif texto == "Sem Comparação":
 
                 celula.font = Font(
 
@@ -101,9 +119,11 @@ def aplicar_cores(ws):
 
                 )
 
+            # ----------------------------------------------
             # SITUAÇÃO
+            # ----------------------------------------------
 
-            elif valor == "Adequado":
+            elif texto == "Adequado":
 
                 celula.font = Font(
 
@@ -113,7 +133,7 @@ def aplicar_cores(ws):
 
                 )
 
-            elif valor == "Acompanhamento":
+            elif texto == "Acompanhamento":
 
                 celula.font = Font(
 
@@ -123,11 +143,45 @@ def aplicar_cores(ws):
 
                 )
 
-            elif valor == "Atenção":
+            elif texto == "Atenção":
 
                 celula.font = Font(
 
                     color="FF0000",
+
+                    bold=True
+
+                )
+
+            # ----------------------------------------------
+            # NÍVEIS
+            # ----------------------------------------------
+
+            elif texto == "Abaixo do Básico":
+
+                celula.font = Font(
+
+                    color="FF0000",
+
+                    bold=True
+
+                )
+
+            elif texto == "Básico":
+
+                celula.font = Font(
+
+                    color="C9A000",
+
+                    bold=True
+
+                )
+
+            elif texto == "Proficiente":
+
+                celula.font = Font(
+
+                    color="0000FF",
 
                     bold=True
 
@@ -140,13 +194,13 @@ def aplicar_cores(ws):
     ws.freeze_panes = "A2"
 
     # ======================================================
-    # FILTRO AUTOMÁTICO
+    # FILTRO
     # ======================================================
 
     ws.auto_filter.ref = ws.dimensions
 
     # ======================================================
-    # AJUSTE DAS COLUNAS
+    # AJUSTAR LARGURA DAS COLUNAS
     # ======================================================
 
     for coluna in ws.columns:
