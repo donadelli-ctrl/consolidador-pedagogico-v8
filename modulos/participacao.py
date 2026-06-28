@@ -31,7 +31,13 @@ def calcular_participacao(base):
 
                 base[coluna]
 
-                .notna()
+                .fillna("")
+
+                .astype(str)
+
+                .str.strip()
+
+                != ""
 
             )
 
@@ -64,9 +70,7 @@ def obter_sem_participacao(base):
 
     sem_participacao = (
 
-        base
-
-        [
+        base[
 
             base["TOTAL_PARTICIPACOES"] < 3
 
@@ -106,11 +110,7 @@ def obter_sem_participacao(base):
 
         )
 
-    if len(
-
-        colunas_ordem
-
-    ) > 0:
+    if len(colunas_ordem) > 0:
 
         sem_participacao = (
 
@@ -127,6 +127,16 @@ def obter_sem_participacao(base):
                 drop=True
 
             )
+
+        )
+
+    else:
+
+        sem_participacao.reset_index(
+
+            drop=True,
+
+            inplace=True
 
         )
 
