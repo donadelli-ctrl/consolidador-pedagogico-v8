@@ -5,32 +5,22 @@ from io import BytesIO
 
 
 # ==========================================================
-# LEITOR ADE
+# LEITOR ADE / AVD / ADP
 # ==========================================================
 
-def ler_ADE(
-
-    arquivo
-
-):
+def ler_ADE(arquivo):
 
     nome = arquivo.name.lower()
 
     # ======================================================
-    # ZIP
+    # LEITURA DE ARQUIVO ZIP
     # ======================================================
 
-    if nome.endswith(
+    if nome.endswith(".zip"):
 
-        ".zip"
+        lista_df = []
 
-    ):
-
-        with zipfile.ZipFile(
-
-            arquivo
-
-        ) as z:
+        with zipfile.ZipFile(arquivo) as z:
 
             arquivos_excel = [
 
@@ -52,11 +42,7 @@ def ler_ADE(
 
             ]
 
-            if len(
-
-                arquivos_excel
-
-            ) == 0:
+            if len(arquivos_excel) == 0:
 
                 raise Exception(
 
@@ -64,26 +50,46 @@ def ler_ADE(
 
                 )
 
-            excel = arquivos_excel[0]
+            for excel in arquivos_excel:
 
-            with z.open(
+                with z.open(excel) as f:
 
-                excel
+                    try:
 
-            ) as f:
+                        df = pd.read_excel(
 
-                df = pd.read_excel(
+                            BytesIO(
 
-                    BytesIO(
+                                f.read()
 
-                        f.read()
+                            )
 
-                    )
+                        )
 
-                )
+                        lista_df.append(df)
+
+                    except Exception:
+
+                        continue
+
+        if len(lista_df) == 0:
+
+            raise Exception(
+
+                "Nenhuma planilha válida foi encontrada no arquivo ZIP."
+
+            )
+
+        df = pd.concat(
+
+            lista_df,
+
+            ignore_index=True
+
+        )
 
     # ======================================================
-    # EXCEL
+    # LEITURA DE EXCEL
     # ======================================================
 
     else:
@@ -95,19 +101,39 @@ def ler_ADE(
         )
 
     # ======================================================
-    # PADRONIZAR COLUNAS
+    # LIMPEZA
+    # ======================================================
+
+    df.dropna(
+
+        how="all",
+
+        inplace=True
+
+    )
+
+    df.reset_index(
+
+        drop=True,
+
+        inplace=True
+
+    )
+
+    # ======================================================
+    # PADRONIZAÇÃO DAS COLUNAS
     # ======================================================
 
     df.columns = [
 
-        str(col).upper()
+        str(col).strip().upper()
 
         for col in df.columns
 
     ]
 
     # ======================================================
-    # CHAVE DE MERGE
+    # CHAVE DE CONSOLIDAÇÃO
     # ======================================================
 
     if (
@@ -143,4 +169,3 @@ def ler_ADE(
         )
 
     return df
-    
