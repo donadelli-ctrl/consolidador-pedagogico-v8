@@ -39,13 +39,20 @@ COLUNAS_NOME = [
     "ALUNO",
     "NOME",
     "Nome",
-    "Aluno"
+    "Aluno",
+    "Nome do Estudante",
+    "Nome do aluno",
+    "Estudante"
 ]
 
 COLUNAS_TURMA = [
     "TURMA",
     "Turma",
-    "Classe"
+    "Classe",
+    "Classe/Turma",
+    "Classe Turma",
+    "Sala",
+    "Sala/Turma"
 ]
 
 COLUNAS_LP = [
@@ -122,29 +129,29 @@ def padronizar_dataframe(df):
     coluna_lp = localizar_coluna(df, COLUNAS_LP)
     coluna_mat = localizar_coluna(df, COLUNAS_MAT)
 
-    novo = pd.DataFrame()
+    novo = pd.DataFrame(index=df.index)
 
-    if coluna_ra:
+    if coluna_ra is not None:
         novo["RA"] = df[coluna_ra]
     else:
         novo["RA"] = ""
 
-    if coluna_nome:
+    if coluna_nome is not None:
         novo["NOME"] = df[coluna_nome]
     else:
         novo["NOME"] = ""
 
-    if coluna_turma:
+    if coluna_turma is not None:
         novo["TURMA"] = df[coluna_turma]
     else:
         novo["TURMA"] = ""
 
-    if coluna_lp:
+    if coluna_lp is not None:
         novo["ADE_LP"] = df[coluna_lp]
     else:
         novo["ADE_LP"] = ""
 
-    if coluna_mat:
+    if coluna_mat is not None:
         novo["ADE_MAT"] = df[coluna_mat]
     else:
         novo["ADE_MAT"] = ""
@@ -172,13 +179,23 @@ def ler_excel(arquivo):
         if df.empty:
             continue
 
+        # Ignora planilhas ocultas de sistema
+        if str(nome_planilha).strip().startswith("_"):
+            continue
+
+        # Remove linhas totalmente vazias
+        df = df.dropna(how="all")
+
+        if df.empty:
+            continue
+
         lista.append(df)
 
     return lista
 
 
 # ==========================================================
-# LEITURA DE ZIP
+# LEITURA DE ARQUIVOS ZIP
 # ==========================================================
 
 def ler_zip(arquivo_zip):
@@ -187,7 +204,7 @@ def ler_zip(arquivo_zip):
 
     with zipfile.ZipFile(arquivo_zip) as z:
 
-        arquivos_excel = sorted([
+        arquivos_excel = sorted(
 
             arq
 
@@ -197,21 +214,23 @@ def ler_zip(arquivo_zip):
                 arq.lower().endswith((".xlsx", ".xlsm"))
                 and
                 not Path(arq).name.startswith("~$")
+                and
+                not Path(arq).name.startswith(".")
             )
 
-        ])
+        )
 
-        if len(arquivos_excel) == 0:
+        if not arquivos_excel:
 
             raise Exception(
                 "Nenhum arquivo Excel encontrado no ZIP."
             )
 
-        for arquivo in arquivos_excel:
+        for nome_arquivo in arquivos_excel:
 
             try:
 
-                with z.open(arquivo) as f:
+                with z.open(nome_arquivo) as f:
 
                     dados = BytesIO(f.read())
 
@@ -222,8 +241,8 @@ def ler_zip(arquivo_zip):
             except Exception as erro:
 
                 print(
-                    f"Aviso: não foi possível ler '{arquivo}'. "
-                    f"Erro: {erro}"
+                    f"[AVISO] Arquivo ignorado: "
+                    f"{nome_arquivo} ({erro})"
                 )
 
     return lista
@@ -239,18 +258,16 @@ def carregar_dataframes(arquivo):
         arquivo,
         "name",
         ""
-    ).lower()
+    ).strip().lower()
 
     if nome.endswith(".zip"):
-
         return ler_zip(arquivo)
 
-    if nome.endswith(".xlsx") or nome.endswith(".xlsm"):
-
+    elif nome.endswith((".xlsx", ".xlsm")):
         return ler_excel(arquivo)
 
-    raise Exception(
-        "Formato de arquivo não suportado."
+    raise ValueError(
+        f"Formato de arquivo não suportado: {nome}"
     )
 
 # ==========================================================
@@ -271,6 +288,9 @@ def limpar_dataframe(df):
         .astype(str)
         .str.strip()
     )
+
+    # Remove ".0" quando o RA vem como número decimal
+    df["RA"] = df["RA"].str.replace(".0", "", regex=False)
 
     # ------------------------------------------------------
     # NOME
@@ -295,45 +315,39 @@ def limpar_dataframe(df):
     )
 
     # ------------------------------------------------------
-    # LP
+    # RESULTADOS
     # ------------------------------------------------------
 
-    df["ADE_LP"] = (
-        df["ADE_LP"]
-        .fillna("")
-        .astype(str)
-        .str.strip()
-    )
+    for coluna in ["ADE_LP", "ADE_MAT"]:
+
+        df[coluna] = (
+            df[coluna]
+            .fillna("")
+            .astype(str)
+            .str.strip()
+        )
 
     # ------------------------------------------------------
-    # MAT
+    # REMOVE LINHAS SEM NOME
     # ------------------------------------------------------
 
-    df["ADE_MAT"] = (
-        df["ADE_MAT"]
-        .fillna("")
-        .astype(str)
-        .str.strip()
-    )
+    df = df[df["NOME"] != ""]
 
-    # ------------------------------------------------------
-    # REMOVE LINHAS SEM ALUNO
-    # ------------------------------------------------------
-
+    # Remove possíveis cabeçalhos repetidos
     df = df[
-        (df["NOME"] != "")
+        ~df["NOME"].str.upper().isin([
+            "NOME",
+            "ESTUDANTE",
+            "ALUNO"
+        ])
     ]
 
     # ------------------------------------------------------
-    # REMOVE DUPLICADOS
+    # REMOVE DUPLICIDADES
     # ------------------------------------------------------
 
     df = df.drop_duplicates(
-        subset=[
-            "RA",
-            "NOME",
-            "TURMA"
-        ],
+        subset=["RA", "NOME", "TURMA"],
         keep="first"
     )
 
@@ -353,16 +367,41 @@ def criar_chave(df):
 
     df = df.copy()
 
-    possui_ra = df["RA"].astype(str).str.strip() != ""
+    # Remove espaços e garante string
+    df["RA"] = (
+        df["RA"]
+        .fillna("")
+        .astype(str)
+        .str.strip()
+    )
 
+    df["NOME"] = (
+        df["NOME"]
+        .fillna("")
+        .astype(str)
+        .str.strip()
+    )
+
+    df["TURMA"] = (
+        df["TURMA"]
+        .fillna("")
+        .astype(str)
+        .str.strip()
+    )
+
+    possui_ra = df["RA"] != ""
+
+    # Quando existe RA, utiliza RA + TURMA
     df.loc[possui_ra, "CHAVE_MERGE"] = (
         df.loc[possui_ra, "RA"]
         + "_"
         + df.loc[possui_ra, "TURMA"]
     )
 
+    # Quando não existe RA, utiliza NOME + TURMA
     df.loc[~possui_ra, "CHAVE_MERGE"] = (
         df.loc[~possui_ra, "NOME"]
+        .str.upper()
         + "_"
         + df.loc[~possui_ra, "TURMA"]
     )
@@ -376,8 +415,8 @@ def criar_chave(df):
 
 def consolidar_dataframes(lista_df):
 
-    if len(lista_df) == 0:
-        raise Exception(
+    if not lista_df:
+        raise ValueError(
             "Nenhuma planilha válida encontrada."
         )
 
@@ -387,21 +426,21 @@ def consolidar_dataframes(lista_df):
 
         try:
 
-            df = limpar_dataframe(df)
+            df_limpo = limpar_dataframe(df)
 
-            if not df.empty:
-                lista_limpa.append(df)
+            if not df_limpo.empty:
+                lista_limpa.append(df_limpo)
 
         except Exception as erro:
 
             print(
-                f"Aviso: planilha ignorada ({erro})"
+                f"[AVISO] Planilha ignorada: {erro}"
             )
 
-    if len(lista_limpa) == 0:
+    if not lista_limpa:
 
-        raise Exception(
-            "Nenhum dado válido encontrado."
+        raise ValueError(
+            "Nenhum dado válido encontrado após a limpeza."
         )
 
     df_final = pd.concat(
@@ -416,9 +455,9 @@ def consolidar_dataframes(lista_df):
         keep="first"
     )
 
-    df_final.reset_index(
-        drop=True,
-        inplace=True
+    df_final = df_final.sort_values(
+        by=["TURMA", "NOME"],
+        ignore_index=True
     )
 
     return df_final
@@ -429,18 +468,8 @@ def consolidar_dataframes(lista_df):
 
 def ler_ADE(arquivo):
     """
-    Lê arquivos ADE / AVD / ADP nos formatos:
-        - .xlsx
-        - .xlsm
-        - .zip (contendo arquivos Excel)
-
-    Retorna um DataFrame padronizado contendo:
-        RA
-        NOME
-        TURMA
-        ADE_LP
-        ADE_MAT
-        CHAVE_MERGE
+    Lê arquivos ADE, AVD e ADP e devolve um DataFrame
+    padronizado para o Consolidador Pedagógico.
     """
 
     try:
@@ -468,7 +497,7 @@ def ler_ADE(arquivo):
 
     except Exception as erro:
 
-        raise Exception(
-            f"Erro ao processar o arquivo ADE/AVD/ADP: {erro}"
-        )
+        raise RuntimeError(
+            f"Erro ao processar ADE/AVD/ADP: {erro}"
+        ) from erro
 
