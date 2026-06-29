@@ -2,6 +2,11 @@ import streamlit as st
 import pandas as pd
 
 from io import BytesIO
+from datetime import datetime
+
+# ==========================================================
+# IMPORTAÇÃO DOS MÓDULOS
+# ==========================================================
 
 from modulos.leitor_ade import ler_ADE
 from modulos.leitor_pp import ler_PP
@@ -35,60 +40,120 @@ from modulos.formatacao_excel import (
     aplicar_cores
 )
 
-
 # ==========================================================
-# TÍTULO
-# ==========================================================
-
-st.title("🏆 CONSOLIDADOR PEDAGÓGICO V8.1")
-st.subheader("URE Pirassununga")
-
-
-# ==========================================================
-# ESCOLA
+# CONFIGURAÇÃO DA PÁGINA
 # ==========================================================
 
-nome_escola = st.text_input("Nome da escola")
-
-
-# ==========================================================
-# UPLOAD DOS ARQUIVOS
-# ==========================================================
-
-st.header("Arquivos")
-
-arquivo_ADE = st.file_uploader(
-    "ADE / AVDE",
-    type=["zip", "xlsx", "xlsm"]
+st.set_page_config(
+    page_title="Consolidador Pedagógico",
+    page_icon="📊",
+    layout="wide"
 )
 
-arquivo_PP1 = st.file_uploader(
-    "PP1",
-    type=["zip", "xlsx", "xlsm"]
-)
-
-arquivo_PP2 = st.file_uploader(
-    "PP2",
-    type=["zip", "xlsx", "xlsm"]
-)
-
-arquivo_ADP = st.file_uploader(
-    "ADP",
-    type=["zip", "xlsx", "xlsm"]
-)
-
-arquivo_PP3 = st.file_uploader(
-    "PP3",
-    type=["zip", "xlsx", "xlsm"]
-)
-
-
 # ==========================================================
-# BOTÃO
+# CABEÇALHO
 # ==========================================================
 
-gerar = st.button("GERAR CONSOLIDADO")
+st.title("🏆 CONSOLIDADOR PEDAGÓGICO V9")
 
+st.caption(
+    "URE Pirassununga • Consolidação automática de avaliações "
+    "ADE • PP1 • PP2 • ADP • PP3"
+)
+
+st.divider()
+
+# ==========================================================
+# DADOS DA ESCOLA
+# ==========================================================
+
+col1, col2 = st.columns([3,1])
+
+with col1:
+
+    nome_escola = st.text_input(
+        "Nome da Escola",
+        placeholder="Ex.: EE Prof. José Jorge Neto"
+    )
+
+with col2:
+
+    ano = st.selectbox(
+        "Ano",
+        [
+            "2026",
+            "2027",
+            "2028"
+        ]
+    )
+
+# ==========================================================
+# UPLOAD
+# ==========================================================
+
+st.subheader("Arquivos")
+
+col1, col2 = st.columns(2)
+
+with col1:
+
+    arquivo_ADE = st.file_uploader(
+        "ADE / AVD",
+        type=["zip","xlsx","xlsm"],
+        key="ADE"
+    )
+
+    arquivo_PP1 = st.file_uploader(
+        "Prova Paulista 1º Bimestre",
+        type=["zip","xlsx","xlsm"],
+        key="PP1"
+    )
+
+    arquivo_PP2 = st.file_uploader(
+        "Prova Paulista 2º Bimestre",
+        type=["zip","xlsx","xlsm"],
+        key="PP2"
+    )
+
+with col2:
+
+    arquivo_ADP = st.file_uploader(
+        "ADP",
+        type=["zip","xlsx","xlsm"],
+        key="ADP"
+    )
+
+    arquivo_PP3 = st.file_uploader(
+        "Prova Paulista 3º Bimestre",
+        type=["zip","xlsx","xlsm"],
+        key="PP3"
+    )
+
+st.divider()
+
+# ==========================================================
+# BOTÕES
+# ==========================================================
+
+col1, col2, col3 = st.columns([1,1,4])
+
+with col1:
+
+    gerar = st.button(
+        "🚀 Gerar Consolidado",
+        use_container_width=True
+    )
+
+with col2:
+
+    limpar = st.button(
+        "🗑 Limpar",
+        use_container_width=True
+    )
+
+if limpar:
+
+    st.rerun()
 
 # ==========================================================
 # PROCESSAMENTO
@@ -98,97 +163,191 @@ if gerar:
 
     try:
 
-        st.success("Processamento iniciado.")
+        if nome_escola.strip() == "":
 
-        # --------------------------------------------------
-        # LEITURA
-        # --------------------------------------------------
+            st.warning(
+                "Informe o nome da escola."
+            )
 
-        df_ADE = None
-        df_PP1 = None
-        df_PP2 = None
-        df_ADP = None
-        df_PP3 = None
+            st.stop()
 
-        if arquivo_ADE is not None:
-            df_ADE = ler_ADE(arquivo_ADE)
+        with st.spinner("Lendo arquivos..."):
 
-        if arquivo_PP1 is not None:
-            df_PP1 = ler_PP(arquivo_PP1, "PP1")
+            df_ADE = None
+            df_PP1 = None
+            df_PP2 = None
+            df_ADP = None
+            df_PP3 = None
 
-        if arquivo_PP2 is not None:
-            df_PP2 = ler_PP(arquivo_PP2, "PP2")
+            # ----------------------------------------------
+            # ADE
+            # ----------------------------------------------
+
+            if arquivo_ADE is not None:
+
+                df_ADE = ler_ADE(
+                    arquivo_ADE
+                )
+
+            # ----------------------------------------------
+            # PP1
+            # ----------------------------------------------
+
+            if arquivo_PP1 is not None:
+
+                df_PP1 = ler_PP(
+                    arquivo_PP1,
+                    "PP1"
+                )
+
+            # ----------------------------------------------
+            # PP2
+            # ----------------------------------------------
+
+            if arquivo_PP2 is not None:
+
+                df_PP2 = ler_PP(
+                    arquivo_PP2,
+                    "PP2"
+                )
+
+            # ----------------------------------------------
+            # ADP
+            # ----------------------------------------------
+
+            if arquivo_ADP is not None:
+
+                df_ADP = ler_ADE(
+                    arquivo_ADP
+                )
+
+            # ----------------------------------------------
+            # PP3
+            # ----------------------------------------------
+
+            if arquivo_PP3 is not None:
+
+                df_PP3 = ler_PP(
+                    arquivo_PP3,
+                    "PP3"
+                )
+
+        st.success("Arquivos carregados com sucesso.")
 
         # ==================================================
-        # ADP = MESMO LEITOR DA ADE
+        # DIAGNÓSTICO DOS ARQUIVOS
         # ==================================================
 
-        if arquivo_ADP is not None:
-            df_ADP = ler_ADE(arquivo_ADP)
+        with st.expander("Diagnóstico"):
 
-        if arquivo_PP3 is not None:
-    df_PP3 = ler_PP(arquivo_PP3, "PP3")
+            if df_ADE is not None:
 
-st.success("Arquivos carregados.")
+                st.write(
+                    "ADE:",
+                    len(df_ADE),
+                    "registros"
+                )
 
-# ==================================================
-# DIAGNÓSTICO PP1
-# ==================================================
+            if df_PP1 is not None:
 
-if df_PP1 is not None:
+                st.write(
+                    "PP1:",
+                    len(df_PP1),
+                    "registros"
+                )
 
-    st.subheader("DIAGNÓSTICO PP1")
+            if df_PP2 is not None:
 
-    st.write("COLUNAS DO PP1")
+                st.write(
+                    "PP2:",
+                    len(df_PP2),
+                    "registros"
+                )
 
-    st.write(df_PP1.columns.tolist())
+            if df_ADP is not None:
 
-    st.write("PRIMEIROS REGISTROS")
+                st.write(
+                    "ADP:",
+                    len(df_ADP),
+                    "registros"
+                )
 
-    st.dataframe(df_PP1.head(10))
+            if df_PP3 is not None:
 
-        # --------------------------------------------------
+                st.write(
+                    "PP3:",
+                    len(df_PP3),
+                    "registros"
+                )
+
+        # ==================================================
         # CONSOLIDAÇÃO
-        # --------------------------------------------------
-
-        base_final = consolidar_base(
-            df_ADE,
-            df_PP1,
-            df_PP2,
-            df_ADP,
-            df_PP3
-        )
-
-        base_final = limpar_base(base_final)
-
-        # ==================================================
-        # DIAGNÓSTICO TEMPORÁRIO
         # ==================================================
 
-        with st.expander("Diagnóstico da Base", expanded=True):
+        with st.spinner("Consolidando as avaliações..."):
 
-            st.write("Colunas encontradas:")
+            base_final = consolidar_base(
+                df_ADE=df_ADE,
+                df_PP1=df_PP1,
+                df_PP2=df_PP2,
+                df_ADP=df_ADP,
+                df_PP3=df_PP3
+            )
 
-            st.write(base_final.columns.tolist())
+            base_final = limpar_base(base_final)
 
-            st.write("Quantidade de registros:")
+        st.success("Base consolidada.")
 
-            st.write(len(base_final))
+        # ==================================================
+        # DIAGNÓSTICO DA BASE
+        # ==================================================
 
-        # --------------------------------------------------
+        with st.expander(
+            "Diagnóstico da Base Consolidada",
+            expanded=False
+        ):
+
+            st.write(
+                f"Total de estudantes: {len(base_final)}"
+            )
+
+            st.write("Colunas disponíveis:")
+
+            st.dataframe(
+                pd.DataFrame(
+                    {
+                        "Colunas":
+                        base_final.columns
+                    }
+                ),
+                use_container_width=True
+            )
+
+        # ==================================================
         # PARTICIPAÇÃO
-        # --------------------------------------------------
+        # ==================================================
 
-        base_final = calcular_participacao(base_final)
+        with st.spinner(
+            "Calculando participação..."
+        ):
 
-        sem_participacao = obter_sem_participacao(base_final)
+            base_final = calcular_participacao(
+                base_final
+            )
 
-        # --------------------------------------------------
-        # PRIORITÁRIOS
-        # --------------------------------------------------
+            sem_participacao = (
+                obter_sem_participacao(
+                    base_final
+                )
+            )
 
-        coluna_lp = "PP2_LP_STATUS"
-        coluna_mat = "PP2_MAT_STATUS"
+        # ==================================================
+        # DEFINE QUAL AVALIAÇÃO
+        # MAIS RECENTE
+        # ==================================================
+
+        coluna_lp = None
+        coluna_mat = None
 
         if (
             "PP3_LP_STATUS" in base_final.columns
@@ -199,111 +358,253 @@ if df_PP1 is not None:
             coluna_lp = "PP3_LP_STATUS"
             coluna_mat = "PP3_MAT_STATUS"
 
-        prioritarios = obter_prioritarios(
-            base_final,
-            coluna_lp,
-            coluna_mat
-        )
+        elif (
 
-        # --------------------------------------------------
-        # RESUMO
-        # --------------------------------------------------
+            "ADP_LP_STATUS"
+            in base_final.columns
+
+        ):
+
+            coluna_lp = "ADP_LP_STATUS"
+            coluna_mat = "ADP_MAT_STATUS"
+
+        elif (
+
+            "PP2_LP_STATUS"
+            in base_final.columns
+
+        ):
+
+            coluna_lp = "PP2_LP_STATUS"
+            coluna_mat = "PP2_MAT_STATUS"
+
+        elif (
+
+            "PP1_LP_STATUS"
+            in base_final.columns
+
+        ):
+
+            coluna_lp = "PP1_LP_STATUS"
+            coluna_mat = "PP1_MAT_STATUS"
+
+        elif (
+
+            "ADE_LP_STATUS"
+            in base_final.columns
+
+        ):
+
+            coluna_lp = "ADE_LP_STATUS"
+            coluna_mat = "ADE_MAT_STATUS"
+
+        # ==================================================
+        # PRIORITÁRIOS
+        # ==================================================
+
+        if coluna_lp is not None:
+
+            prioritarios = obter_prioritarios(
+
+                base_final,
+
+                coluna_lp,
+
+                coluna_mat
+
+            )
+
+        else:
+
+            prioritarios = pd.DataFrame()
+
+        # ==================================================
+        # RESUMO POR TURMA
+        # ==================================================
 
         resumo_por_turma = gerar_resumo_por_turma(
+
             base_final,
+
             prioritarios
+
         )
+
+        # ==================================================
+        # PAINEL DA ESCOLA
+        # ==================================================
 
         painel_escola = gerar_painel_escola(
+
             base_final,
+
             resumo_por_turma
+
         )
 
-        # --------------------------------------------------
+        # ==================================================
         # EVOLUÇÃO
-        # --------------------------------------------------
+        # ==================================================
 
-        evolucao = gerar_evolucao(base_final)
+        evolucao = gerar_evolucao(
 
-        # --------------------------------------------------
-        # ABAS
-        # --------------------------------------------------
+            base_final
 
-        abas = montar_abas(
-            painel_escola,
-            base_final,
-            resumo_por_turma,
-            prioritarios,
-            sem_participacao,
-            evolucao
         )
 
-        # --------------------------------------------------
-        # EXCEL
-        # --------------------------------------------------
-
-        output = BytesIO()
-
-        with pd.ExcelWriter(
-            output,
-            engine="openpyxl"
-        ) as writer:
-
-            for nome_aba, df in abas.items():
-
-                df.to_excel(
-                    writer,
-                    sheet_name=str(nome_aba)[:31],
-                    index=False
-                )
-
-            workbook = writer.book
-
-            for ws in workbook.worksheets:
-                aplicar_cores(ws)
-
-        output.seek(0)
-
-        # --------------------------------------------------
+        # ==================================================
         # INDICADORES
-        # --------------------------------------------------
+        # ==================================================
 
-        col1, col2, col3 = st.columns(3)
+        st.divider()
+
+        st.subheader(
+            "Indicadores Gerais"
+        )
+
+        col1, col2, col3, col4 = st.columns(4)
 
         with col1:
-            st.metric("Estudantes", len(base_final))
+
+            st.metric(
+
+                "Estudantes",
+
+                len(base_final)
+
+            )
 
         with col2:
-            st.metric("Prioritários", len(prioritarios))
+
+            st.metric(
+
+                "Prioritários",
+
+                len(prioritarios)
+
+            )
 
         with col3:
-            st.metric("Baixa participação", len(sem_participacao))
 
-        st.subheader("Painel da Escola")
+            st.metric(
+
+                "Sem participação",
+
+                len(sem_participacao)
+
+            )
+
+        with col4:
+
+            if len(base_final):
+
+                percentual = round(
+
+                    (
+                        len(base_final)
+                        -
+                        len(sem_participacao)
+                    )
+
+                    /
+
+                    len(base_final)
+
+                    * 100,
+
+                    1
+
+                )
+
+            else:
+
+                percentual = 0
+
+            st.metric(
+
+                "Participação",
+
+                f"{percentual}%"
+
+            )
+
+        st.divider()
+
+        # ==================================================
+        # PAINEL
+        # ==================================================
+
+        st.subheader(
+            "Painel da Escola"
+        )
 
         st.dataframe(
+
             painel_escola,
-            use_container_width=True
+
+            use_container_width=True,
+
+            hide_index=True
+
         )
 
-        # --------------------------------------------------
-        # DOWNLOAD
-        # --------------------------------------------------
+        # ==================================================
+        # RESUMO DAS TURMAS
+        # ==================================================
 
-        nome_arquivo = (
-            nome_escola.upper().replace(" ", "_")
-            + "_CONSOLIDADO_HISTORICO_2026.xlsx"
+        st.subheader(
+            "Resumo por Turma"
         )
 
-        st.download_button(
-            "⬇ BAIXAR CONSOLIDADO",
-            output,
-            file_name=nome_arquivo,
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        st.dataframe(
+
+            resumo_por_turma,
+
+            use_container_width=True,
+
+            hide_index=True
+
         )
 
-    except Exception as erro:
+        # ==================================================
+        # ALUNOS PRIORITÁRIOS
+        # ==================================================
 
-        st.error("Ocorreu um erro durante o processamento.")
+        if len(prioritarios):
 
-        st.exception(erro)
+            st.subheader(
+                "Estudantes Prioritários"
+            )
+
+            st.dataframe(
+
+                prioritarios,
+
+                use_container_width=True,
+
+                hide_index=True
+
+            )
+
+        # ==================================================
+        # SEM PARTICIPAÇÃO
+        # ==================================================
+
+        if len(sem_participacao):
+
+            st.subheader(
+                "Sem Participação"
+            )
+
+            st.dataframe(
+
+                sem_participacao,
+
+                use_container_width=True,
+
+                hide_index=True
+
+            )
+
+
+
