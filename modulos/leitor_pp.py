@@ -222,9 +222,22 @@ def ler_PP(arquivo, prefixo):
 
         df = ler_planilha(arquivo)
 
-        df["TURMA"] = ""
+    # Usa a coluna TURMA quando ela existir
+    if "TURMA" in df.columns:
 
-        lista.append(df)
+        df["TURMA"] = (
+            df["TURMA"]
+            .fillna("")
+            .astype(str)
+        )
+
+    else:
+
+        df["TURMA"] = normalizar_turma(
+            arquivo.name
+        )
+
+    lista.append(df)
 
     # ------------------------------------------------------
     # NENHUM DADO
