@@ -606,5 +606,172 @@ if gerar:
 
             )
 
+        # ==================================================
+        # MONTAGEM DAS ABAS
+        # ==================================================
+
+        with st.spinner("Montando planilhas..."):
+
+            abas = montar_abas(
+                painel_escola,
+                base_final,
+                resumo_por_turma,
+                prioritarios,
+                sem_participacao,
+                evolucao
+            )
+
+        # ==================================================
+        # GERAÇÃO DO EXCEL
+        # ==================================================
+
+        output = BytesIO()
+
+        with pd.ExcelWriter(
+            output,
+            engine="openpyxl"
+        ) as writer:
+
+            for nome_aba, df in abas.items():
+
+                if df is None:
+                    continue
+
+                if len(df) == 0:
+                    df = pd.DataFrame()
+
+                df.to_excel(
+                    writer,
+                    sheet_name=str(nome_aba)[:31],
+                    index=False
+                )
+
+            workbook = writer.book
+
+            for ws in workbook.worksheets:
+
+                try:
+
+                    aplicar_cores(ws)
+
+                except Exception:
+
+                    pass
+
+        output.seek(0)
+
+        # ==================================================
+        # RESUMO FINAL
+        # ==================================================
+
+        st.success(
+            "Consolidado gerado com sucesso."
+        )
+
+        col1, col2, col3 = st.columns(3)
+
+        with col1:
+
+            st.metric(
+                "Total de estudantes",
+                len(base_final)
+            )
+
+        with col2:
+
+            st.metric(
+                "Estudantes prioritários",
+                len(prioritarios)
+            )
+
+        with col3:
+
+            st.metric(
+                "Sem participação",
+                len(sem_participacao)
+            )
+
+        st.divider()
+
+        st.subheader("Visualização da Base Consolidada")
+
+        st.dataframe(
+
+            base_final,
+
+            use_container_width=True,
+
+            hide_index=True
+
+        )
+
+        st.divider()
+
+        # ==================================================
+        # DOWNLOAD
+        # ==================================================
+
+        data_geracao = datetime.now().strftime(
+            "%d/%m/%Y %H:%M"
+        )
+
+        st.caption(
+            f"Gerado em {data_geracao}"
+        )
+
+        if nome_escola.strip() == "":
+
+            nome_arquivo = (
+                "CONSOLIDADO_HISTORICO.xlsx"
+            )
+
+        else:
+
+            nome_arquivo = (
+                nome_escola.upper()
+                .replace(" ", "_")
+                .replace("/", "_")
+                + "_CONSOLIDADO_HISTORICO.xlsx"
+            )
+
+        st.download_button(
+
+            label="📥 BAIXAR CONSOLIDADO",
+
+            data=output,
+
+            file_name=nome_arquivo,
+
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+
+            use_container_width=True
+
+        )
+
+    # ==================================================
+    # FINALIZAÇÃO
+    # ==================================================
+
+    except Exception as erro:
+
+        st.error(
+            "Ocorreu um erro durante o processamento."
+        )
+
+        st.exception(erro)
+
+        st.stop()
+
+# ==========================================================
+# RODAPÉ
+# ==========================================================
+
+st.divider()
+
+st.caption(
+    "Consolidador Pedagógico V9 • URE Pirassununga"
+)
+        
+
 
 
