@@ -163,56 +163,59 @@ def ler_PP(arquivo, prefixo):
     lista = []
 
     # ------------------------------------------------------
-    # ARQUIVO ZIP
+    # LEITURA DE ARQUIVO ZIP
     # ------------------------------------------------------
 
     if arquivo.name.lower().endswith(".zip"):
 
-    with zipfile.ZipFile(arquivo) as z:
+        with zipfile.ZipFile(arquivo) as z:
 
-        arquivos_excel = sorted(
+            arquivos_excel = sorted(
 
-            nome
+                nome
 
-            for nome in z.namelist()
+                for nome in z.namelist()
 
-            if (
-                nome.lower().endswith(
-                    (".xlsx", ".xlsm")
+                if (
+                    nome.lower().endswith((".xlsx", ".xlsm"))
+                    and
+                    not os.path.basename(nome).startswith("~$")
+                    and
+                    not os.path.basename(nome).startswith(".")
                 )
-                and
-                not os.path.basename(nome).startswith("~$")
-                and
-                not os.path.basename(nome).startswith(".")
+
             )
 
-        )
+            if len(arquivos_excel) == 0:
+
+                raise ValueError(
+                    "Nenhum arquivo Excel encontrado no ZIP."
+                )
 
             for nome_excel in arquivos_excel:
 
-    try:
+                try:
 
-        with z.open(nome_excel) as f:
+                    with z.open(nome_excel) as f:
 
-            dados = BytesIO(f.read())
+                        dados = BytesIO(f.read())
 
-            df = ler_planilha(dados)
+                        df = ler_planilha(dados)
 
-            df["TURMA"] = normalizar_turma(
-                nome_excel
-            )
+                        df["TURMA"] = normalizar_turma(
+                            nome_excel
+                        )
 
-            lista.append(df)
+                        lista.append(df)
 
-    except Exception as erro:
+                except Exception as erro:
 
-        print(
-            f"[AVISO] Arquivo ignorado: "
-            f"{nome_excel} ({erro})"
-        )
+                    print(
+                        f"[AVISO] {nome_excel}: {erro}"
+                    )
 
     # ------------------------------------------------------
-    # ARQUIVO EXCEL
+    # LEITURA DE EXCEL
     # ------------------------------------------------------
 
     else:
@@ -227,7 +230,7 @@ def ler_PP(arquivo, prefixo):
     # NENHUM DADO
     # ------------------------------------------------------
 
-    if len(lista) == 0:
+    if not lista:
 
         return pd.DataFrame()
 
@@ -246,64 +249,62 @@ def ler_PP(arquivo, prefixo):
 
     df.columns = [
 
-        str(c).strip().upper()
+        str(coluna).strip().upper()
 
-        for c in df.columns
+        for coluna in df.columns
 
     ]
 
-# ------------------------------------------------------
-# RENOMEAR COLUNAS
-# ------------------------------------------------------
+    # ------------------------------------------------------
+    # RENOMEAR COLUNAS
+    # ------------------------------------------------------
 
-mapa = {}
+    mapa = {}
 
-for coluna in df.columns:
+    for coluna in df.columns:
 
-    nome = str(coluna).strip().upper()
+        nome = str(coluna).strip().upper()
 
-    if "RA" in nome:
-        mapa[coluna] = "RA"
+        if "RA" in nome:
+            mapa[coluna] = "RA"
 
-    elif nome in [
-        "NOME",
-        "ESTUDANTE",
-        "ALUNO"
-    ]:
-        mapa[coluna] = "NOME"
+        elif nome in (
+            "NOME",
+            "ESTUDANTE",
+            "ALUNO"
+        ):
+            mapa[coluna] = "NOME"
 
-    elif nome in [
-        "PORT",
-        "LP",
-        "LÍNGUA PORTUGUESA",
-        "LINGUA PORTUGUESA"
-    ]:
-        mapa[coluna] = "PORT"
+        elif nome in (
+            "PORT",
+            "LP",
+            "LÍNGUA PORTUGUESA",
+            "LINGUA PORTUGUESA"
+        ):
+            mapa[coluna] = "PORT"
 
-    elif nome in [
-        "MAT",
-        "MATEMÁTICA",
-        "MATEMATICA"
-    ]:
-        mapa[coluna] = "MAT"
+        elif nome in (
+            "MAT",
+            "MATEMÁTICA",
+            "MATEMATICA"
+        ):
+            mapa[coluna] = "MAT"
 
-df.rename(
-    columns=mapa,
-    inplace=True
-)
+    df.rename(
+        columns=mapa,
+        inplace=True
+    )
 
     # ------------------------------------------------------
     # GARANTIR COLUNAS
     # ------------------------------------------------------
 
-    for coluna in [
-
+    for coluna in (
         "RA",
         "NOME",
         "PORT",
         "MAT"
-
-    ]:
+    ):
 
         if coluna not in df.columns:
 
@@ -319,12 +320,14 @@ df.rename(
 
     df["NOME"] = (
         df["NOME"]
+        .fillna("")
         .astype(str)
         .str.strip()
     )
 
     df["TURMA"] = (
         df["TURMA"]
+        .fillna("")
         .astype(str)
         .str.upper()
         .str.strip()
@@ -344,14 +347,9 @@ df.rename(
         errors="coerce"
     )
 
-    # Caso venha em percentual (94,5)
-    df.loc[df["PORT"] > 1, "PORT"] = (
-        df.loc[df["PORT"] > 1, "PORT"] / 100
-    )
+    df.loc[df["PORT"] > 1, "PORT"] /= 100
 
-    df.loc[df["MAT"] > 1, "MAT"] = (
-        df.loc[df["MAT"] > 1, "MAT"] / 100
-    )
+    df.loc[df["MAT"] > 1, "MAT"] /= 100
 
     # ------------------------------------------------------
     # RESULTADOS
@@ -362,27 +360,21 @@ df.rename(
     df[f"{prefixo}_MAT"] = df["MAT"]
 
     df[f"{prefixo}_LP_STATUS"] = (
-        df["PORT"]
-        .apply(classificar_pp)
+        df["PORT"].apply(classificar_pp)
     )
 
     df[f"{prefixo}_MAT_STATUS"] = (
-        df["MAT"]
-        .apply(classificar_pp)
+        df["MAT"].apply(classificar_pp)
     )
 
     # ------------------------------------------------------
-    # CHAVE
+    # CHAVE DE MERGE
     # ------------------------------------------------------
 
     df["CHAVE_MERGE"] = (
-
         df["RA"]
-
         + "_"
-
         + df["TURMA"]
-
     )
 
     # ------------------------------------------------------
@@ -390,15 +382,15 @@ df.rename(
     # ------------------------------------------------------
 
     df = (
-
         df
-
         .drop_duplicates(
-            subset="CHAVE_MERGE"
+            subset="CHAVE_MERGE",
+            keep="first"
         )
-
-        .reset_index(drop=True)
-
+        .sort_values(
+            by=["TURMA", "NOME"],
+            ignore_index=True
+        )
     )
 
     # ------------------------------------------------------
@@ -406,26 +398,17 @@ df.rename(
     # ------------------------------------------------------
 
     return df[
-
         [
-
             "RA",
-
             "NOME",
-
             "TURMA",
-
             f"{prefixo}_LP",
-
             f"{prefixo}_LP_STATUS",
-
             f"{prefixo}_MAT",
-
             f"{prefixo}_MAT_STATUS",
-
             "CHAVE_MERGE"
-
         ]
-
     ]
+
+
 
