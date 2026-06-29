@@ -16,26 +16,26 @@ def consolidar_base(
 ):
 
     # ======================================================
-    # LISTA DAS BASES
+    # ORGANIZAÇÃO DAS BASES
     # ======================================================
 
-    lista = [
+    bases = [
 
-        df_ADE,
-        df_PP1,
-        df_PP2,
-        df_ADP,
-        df_PP3
+        ("ADE", df_ADE),
+        ("PP1", df_PP1),
+        ("PP2", df_PP2),
+        ("ADP", df_ADP),
+        ("PP3", df_PP3)
 
     ]
 
     # ======================================================
-    # ENCONTRAR A PRIMEIRA BASE VÁLIDA
+    # LOCALIZAR A PRIMEIRA BASE VÁLIDA
     # ======================================================
 
-    base_principal = None
+    base = None
 
-    for df in lista:
+    for nome, df in bases:
 
         if (
             df is not None
@@ -45,71 +45,60 @@ def consolidar_base(
             "CHAVE_MERGE" in df.columns
         ):
 
-            base_principal = df.copy()
+            base = df.copy()
+
             break
 
-    if base_principal is None:
+    if base is None:
 
         return pd.DataFrame()
 
     # ======================================================
-    # GARANTIR COLUNAS DA BASE PRINCIPAL
+    # GARANTIR COLUNAS BÁSICAS
     # ======================================================
 
-    colunas_identificacao = [
+    for coluna in [
 
         "CHAVE_MERGE",
         "RA",
         "NOME",
         "TURMA"
 
-    ]
+    ]:
 
-    for coluna in colunas_identificacao:
+        if coluna not in base.columns:
 
-        if coluna not in base_principal.columns:
-
-            base_principal[coluna] = ""
-
-    # ======================================================
-    # BASE FINAL
-    # ======================================================
-
-    base = base_principal.copy()
+            base[coluna] = ""
 
     # ======================================================
     # MERGE DAS DEMAIS BASES
     # ======================================================
 
-    for df in lista:
+    for nome, df in bases:
 
         if df is None:
-
             continue
 
         if df.empty:
-
             continue
 
-        if df.equals(base_principal):
-
+        if df.equals(base):
             continue
 
         if "CHAVE_MERGE" not in df.columns:
-
             continue
 
-        # ----------------------------------------------
-        # MANTER SOMENTE CHAVE + RESULTADOS
-        # ----------------------------------------------
+        # --------------------------------------------------
+        # COLUNAS QUE SERÃO INCORPORADAS
+        # --------------------------------------------------
 
-        colunas = [
+        colunas_merge = [
 
-            c
+            coluna
 
-            for c in df.columns
+            for coluna in df.columns
 
-            if c not in [
+            if coluna not in [
 
                 "RA",
                 "NOME",
@@ -119,20 +108,20 @@ def consolidar_base(
 
         ]
 
-        df_merge = df[colunas].copy()
+        df_merge = df[colunas_merge].copy()
 
-        # ----------------------------------------------
-        # REMOVER DUPLICADAS
-        # ----------------------------------------------
+        # --------------------------------------------------
+        # REMOVE COLUNAS DUPLICADAS
+        # --------------------------------------------------
 
         df_merge = df_merge.loc[
             :,
             ~df_merge.columns.duplicated()
         ]
 
-        # ----------------------------------------------
+        # --------------------------------------------------
         # MERGE
-        # ----------------------------------------------
+        # --------------------------------------------------
 
         base = base.merge(
 
@@ -140,30 +129,92 @@ def consolidar_base(
 
             on="CHAVE_MERGE",
 
-            how="left"
+            how="outer"
 
         )
 
+        # --------------------------------------------------
+        # RECUPERAR DADOS DE IDENTIFICAÇÃO
+        # --------------------------------------------------
+
+        for coluna in [
+
+            "RA",
+            "NOME",
+            "TURMA"
+
+        ]:
+
+            coluna_x = f"{coluna}_x"
+            coluna_y = f"{coluna}_y"
+
+            if (
+                coluna_x in base.columns
+                and
+                coluna_y in base.columns
+            ):
+
+                base[coluna] = (
+                    base[coluna_x]
+                    .fillna(base[coluna_y])
+                )
+
+                base.drop(
+                    columns=[
+                        coluna_x,
+                        coluna_y
+                    ],
+                    inplace=True
+                )
+
     # ======================================================
-    # REMOVER DUPLICADOS
+    # REMOVER DUPLICIDADES
     # ======================================================
 
     base = (
-
         base
-
         .drop_duplicates(
-
-            subset="CHAVE_MERGE"
-
+            subset="CHAVE_MERGE",
+            keep="first"
         )
-
-        .reset_index(
-
-            drop=True
-
-        )
-
+        .reset_index(drop=True)
     )
 
+    # ======================================================
+    # ORDENAÇÃO
+    # ======================================================
+
+    colunas_ordenacao = []
+
+    if "TURMA" in base.columns:
+        colunas_ordenacao.append("TURMA")
+
+    if "NOME" in base.columns:
+        colunas_ordenacao.append("NOME")
+
+    if colunas_ordenacao:
+        base = base.sort_values(
+            by=colunas_ordenacao,
+            ignore_index=True
+        )
+
+    # ======================================================
+    # GARANTIR COLUNAS DE IDENTIFICAÇÃO
+    # ======================================================
+
+    for coluna in [
+        "RA",
+        "NOME",
+        "TURMA",
+        "CHAVE_MERGE"
+    ]:
+
+        if coluna not in base.columns:
+            base[coluna] = ""
+
+    # ======================================================
+    # RETORNO
+    # ======================================================
+
     return base
+    
