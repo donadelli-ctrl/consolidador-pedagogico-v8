@@ -41,9 +41,10 @@ from modulos.formatacao_excel import (
 # ==========================================================
 
 st.set_page_config(
-    page_title="Consolidador Pedagógico",
+    page_title="Consolidador Pedagógico V8.1",
     page_icon="📊",
-    layout="wide"
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
 
 # ==========================================================
@@ -63,7 +64,8 @@ st.divider()
 # ==========================================================
 
 nome_escola = st.text_input(
-    "Nome da escola"
+    "Nome da escola",
+    placeholder="Ex.: EE Prof. José Jorge Neto"
 )
 
 st.divider()
@@ -76,27 +78,32 @@ st.subheader("Arquivos")
 
 arquivo_ADE = st.file_uploader(
     "ADE / AVDE",
-    type=["zip", "xlsx", "xlsm"]
+    type=["zip", "xlsx", "xlsm"],
+    help="Selecione o arquivo ou ZIP da Avaliação Diagnóstica de Entrada."
 )
 
 arquivo_PP1 = st.file_uploader(
     "PP1",
-    type=["zip", "xlsx", "xlsm"]
+    type=["zip", "xlsx", "xlsm"],
+    help="Selecione o arquivo ou ZIP da Prova Paulista - 1º Bimestre."
 )
 
 arquivo_PP2 = st.file_uploader(
     "PP2",
-    type=["zip", "xlsx", "xlsm"]
+    type=["zip", "xlsx", "xlsm"],
+    help="Selecione o arquivo ou ZIP da Prova Paulista - 2º Bimestre."
 )
 
 arquivo_ADP = st.file_uploader(
     "ADP",
-    type=["zip", "xlsx", "xlsm"]
+    type=["zip", "xlsx", "xlsm"],
+    help="Selecione o arquivo ou ZIP da Avaliação Diagnóstica de Percurso."
 )
 
 arquivo_PP3 = st.file_uploader(
     "PP3",
-    type=["zip", "xlsx", "xlsm"]
+    type=["zip", "xlsx", "xlsm"],
+    help="Selecione o arquivo ou ZIP da Prova Paulista - 3º Bimestre."
 )
 
 st.divider()
