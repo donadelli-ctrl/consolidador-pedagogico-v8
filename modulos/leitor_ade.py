@@ -69,14 +69,24 @@ COLUNAS_MAT = [
 # ==========================================================
 
 def localizar_coluna(df, possibilidades):
+    """
+    Procura uma coluna considerando diferenças de
+    maiúsculas/minúsculas e espaços extras.
+    """
 
-    for coluna in possibilidades:
+    mapa = {
+        str(col).strip().upper(): col
+        for col in df.columns
+    }
 
-        if coluna in df.columns:
-            return coluna
+    for nome in possibilidades:
+
+        chave = str(nome).strip().upper()
+
+        if chave in mapa:
+            return mapa[chave]
 
     return None
-
 
 # ==========================================================
 # PADRONIZA NOMES DAS COLUNAS
