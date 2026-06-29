@@ -5,15 +5,10 @@
 def montar_abas(
 
     painel_escola,
-
     base_final,
-
     resumo_por_turma,
-
     prioritarios,
-
     sem_participacao,
-
     evolucao
 
 ):
@@ -21,7 +16,7 @@ def montar_abas(
     abas = {}
 
     # ======================================================
-    # PAINEL ESCOLA
+    # PAINEL DA ESCOLA
     # ======================================================
 
     abas["PAINEL_ESCOLA"] = painel_escola.copy()
@@ -51,7 +46,7 @@ def montar_abas(
     abas["MONITORAMENTO_AB"] = prioritarios.copy()
 
     # ======================================================
-    # ESTUDANTES PRIORITÁRIOS
+    # PRIORITÁRIOS
     # ======================================================
 
     abas["ESTUDANTES_PRIORITARIOS"] = prioritarios.copy()
@@ -63,7 +58,7 @@ def montar_abas(
     abas["SEM_PARTICIPACAO"] = sem_participacao.copy()
 
     # ======================================================
-    # ABAS DAS TURMAS
+    # DEFINIR COLUNA DA TURMA
     # ======================================================
 
     coluna_turma = "TURMA_PAD"
@@ -72,52 +67,147 @@ def montar_abas(
 
         coluna_turma = "TURMA"
 
-    if coluna_turma in base_final.columns:
+    if coluna_turma not in base_final.columns:
 
-        turmas = sorted(
+        return abas
 
-            base_final[coluna_turma]
+    # ======================================================
+    # LISTA DAS TURMAS
+    # ======================================================
 
-            .dropna()
+    turmas = (
 
-            .unique()
+        base_final[coluna_turma]
+
+        .fillna("")
+
+        .astype(str)
+
+        .str.strip()
+
+    )
+
+    turmas = sorted(
+
+        [
+
+            turma
+
+            for turma in turmas.unique()
+
+            if turma != ""
+
+        ]
+
+    )
+
+    # ======================================================
+    # CRIAR UMA ABA PARA CADA TURMA
+    # ======================================================
+
+    for turma in turmas:
+
+        df_turma = (
+
+            base_final[
+
+                base_final[coluna_turma] == turma
+
+            ]
+
+            .copy()
 
         )
 
-        for turma in turmas:
+        # ----------------------------------------------
+        # ORDENAÇÃO
+        # ----------------------------------------------
+
+        if "NOME" in df_turma.columns:
 
             df_turma = (
 
-                base_final[
+                df_turma
 
-                    base_final[coluna_turma] == turma
+                .sort_values(
 
-                ]
-
-                .copy()
-
-            )
-
-            if "NOME" in df_turma.columns:
-
-                df_turma = (
-
-                    df_turma
-
-                    .sort_values(
-
-                        "NOME"
-
-                    )
-
-                    .reset_index(
-
-                        drop=True
-
-                    )
+                    by="NOME"
 
                 )
 
-            abas[str(turma)] = df_turma
+                .reset_index(
 
-    return abas
+                    drop=True
+
+                )
+
+            )
+
+        # ----------------------------------------------
+        # REMOVER COLUNAS AUXILIARES
+        # ----------------------------------------------
+
+        colunas_remover = [
+
+            "CHAVE_MERGE"
+
+        ]
+
+        for coluna in colunas_remover:
+
+            if coluna in df_turma.columns:
+
+                df_turma.drop(
+
+                    columns=coluna,
+
+                    inplace=True
+
+                )
+
+        abas[str(turma)] = df_turma
+
+    # ======================================================
+    # ORGANIZAR AS ABAS
+    # ======================================================
+
+    ordem = [
+
+        "PAINEL_ESCOLA",
+        "RESUMO_GERAL",
+        "ESCOLA_EM_NUMEROS",
+        "EVOLUCAO",
+        "MONITORAMENTO_AB",
+        "ESTUDANTES_PRIORITARIOS",
+        "SEM_PARTICIPACAO"
+
+    ]
+
+    abas_finais = {}
+
+    # ------------------------------------------------------
+    # ABAS FIXAS
+    # ------------------------------------------------------
+
+    for aba in ordem:
+
+        if aba in abas:
+
+            abas_finais[aba] = abas[aba]
+
+    # ------------------------------------------------------
+    # ABAS DAS TURMAS
+    # ------------------------------------------------------
+
+    for turma in turmas:
+
+        if turma in abas:
+
+            abas_finais[turma] = abas[turma]
+
+    # ======================================================
+    # RETORNO
+    # ======================================================
+
+    return abas_finais
+
