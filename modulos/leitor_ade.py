@@ -27,8 +27,11 @@ COLUNAS_RA = [
     "Id",
     "Id ",
     "Registro",
+    "Registro do Aluno",
     "Matrícula",
-    "Matricula"
+    "Matricula",
+    "Código",
+    "Codigo"
 ]
 
 COLUNAS_NOME = [
