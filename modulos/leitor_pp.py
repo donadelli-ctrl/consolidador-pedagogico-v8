@@ -6,7 +6,7 @@ import pandas as pd
 
 
 # ==========================================================
-# CLASSIFICAÇÃO
+# CLASSIFICAÇÃO DA PROVA PAULISTA
 # ==========================================================
 
 def classificar_pp(valor):
@@ -16,25 +16,27 @@ def classificar_pp(valor):
 
     try:
         valor = float(valor)
-    except Exception:
+    except (TypeError, ValueError):
         return ""
 
-    # Caso venha em porcentagem (94.4), converte para decimal
+    # Caso venha em percentual (94.4)
     if valor > 1:
-        valor = valor / 100
+        valor /= 100
 
     if valor < 0.50:
         return "Abaixo do Básico"
+
     elif valor < 0.70:
         return "Básico"
+
     elif valor < 0.90:
         return "Adequado"
-    else:
-        return "Proficiente"
+
+    return "Proficiente"
 
 
 # ==========================================================
-# NORMALIZAÇÃO
+# NORMALIZA RA
 # ==========================================================
 
 def normalizar_ra(valor):
@@ -44,30 +46,20 @@ def normalizar_ra(valor):
 
     texto = str(valor).strip()
 
+    # Remove ".0" quando o Excel converte para número
     if texto.endswith(".0"):
         texto = texto[:-2]
 
-    return texto.zfill(12)
-
-
-def normalizar_turma(nome_arquivo):
-
-    turma = os.path.splitext(
-        os.path.basename(nome_arquivo)
-    )[0]
-
-    turma = (
-        turma.upper()
-        .replace("ª", "")
-        .replace("º", "")
-        .replace("-", " ")
-        .strip()
+    # Mantém apenas os dígitos
+    texto = "".join(
+        c for c in texto
+        if c.isdigit()
     )
 
-    while "  " in turma:
-        turma = turma.replace("  ", " ")
+    if texto == "":
+        return ""
 
-    return turma
+    return texto.zfill(12)
 
 
 # ==========================================================
