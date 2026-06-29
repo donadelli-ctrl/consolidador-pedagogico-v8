@@ -59,7 +59,7 @@ def normalizar_ra(valor):
     if texto == "":
         return ""
 
-    return texto.zfill(12)
+    return texto
 
 # ==========================================================
 # NORMALIZA TURMA
