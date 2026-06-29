@@ -16,8 +16,12 @@ def classificar_pp(valor):
 
     try:
         valor = float(valor)
-    except:
+    except Exception:
         return ""
+
+    # Caso venha em porcentagem (94.4), converte para decimal
+    if valor > 1:
+        valor = valor / 100
 
     if valor < 0.50:
         return "Abaixo do Básico"
@@ -30,69 +34,147 @@ def classificar_pp(valor):
 
 
 # ==========================================================
-# LOCALIZAR CABEÇALHO
+# NORMALIZAÇÃO
 # ==========================================================
 
-def ler_planilha(f):
+def normalizar_ra(valor):
 
-    # Lê sem cabeçalho
-    bruto = pd.read_excel(f, header=None)
+    if pd.isna(valor):
+        return ""
 
-    linha_cabecalho = None
+    texto = str(valor).strip()
 
-    for i in range(min(15, len(bruto))):
+    if texto.endswith(".0"):
+        texto = texto[:-2]
 
-        texto = " ".join(bruto.iloc[i].astype(str).tolist()).upper()
+    return texto.zfill(12)
+
+
+def normalizar_turma(nome_arquivo):
+
+    turma = os.path.splitext(
+        os.path.basename(nome_arquivo)
+    )[0]
+
+    turma = (
+        turma.upper()
+        .replace("ª", "")
+        .replace("º", "")
+        .replace("-", " ")
+        .strip()
+    )
+
+    while "  " in turma:
+        turma = turma.replace("  ", " ")
+
+    return turma
+
+
+# ==========================================================
+# LEITURA DA PLANILHA
+# ==========================================================
+
+def ler_planilha(arquivo):
+
+    bruto = pd.read_excel(
+        arquivo,
+        header=None
+    )
+
+    linha = None
+
+    for i in range(min(10, len(bruto))):
+
+        texto = " ".join(
+            bruto.iloc[i]
+            .fillna("")
+            .astype(str)
+            .tolist()
+        ).upper()
 
         if "NR RA" in texto and "NOME" in texto:
-            linha_cabecalho = i
+
+            linha = i
             break
 
-    if linha_cabecalho is None:
-        raise Exception("Não foi possível localizar o cabeçalho da Prova Paulista.")
+    if linha is None:
+        raise ValueError(
+            "Cabeçalho da Prova Paulista não encontrado."
+        )
 
-    f.seek(0)
+    arquivo.seek(0)
 
-    return pd.read_excel(f, header=linha_cabecalho)
+    df = pd.read_excel(
+        arquivo,
+        header=linha
+    )
 
+    df.columns = [
+        str(c).strip()
+        for c in df.columns
+    ]
+
+    return df
 
 # ==========================================================
-# LEITOR
+# LEITOR PRINCIPAL
 # ==========================================================
 
 def ler_PP(arquivo, prefixo):
 
     lista = []
 
+    # ------------------------------------------------------
+    # ARQUIVO ZIP
+    # ------------------------------------------------------
+
     if arquivo.name.lower().endswith(".zip"):
 
         with zipfile.ZipFile(arquivo) as z:
 
-            excels = [
+            arquivos_excel = [
 
-                arq
+                nome
 
-                for arq in z.namelist()
+                for nome in z.namelist()
 
-                if arq.lower().endswith((".xlsx", ".xlsm"))
+                if nome.lower().endswith(
+                    (".xlsx", ".xlsm")
+                )
 
             ]
 
-            for excel in excels:
+            for nome_excel in arquivos_excel:
 
-                with z.open(excel) as arq:
+                with z.open(nome_excel) as f:
 
-                    dados = BytesIO(arq.read())
+                    dados = BytesIO(
+                        f.read()
+                    )
 
-                    df = ler_planilha(dados)
+                    try:
 
-                    turma = os.path.splitext(
-                        os.path.basename(excel)
-                    )[0].strip()
+                        df = ler_planilha(
+                            dados
+                        )
 
-                    df["TURMA"] = turma
+                    except Exception:
+
+                        continue
+
+                    # --------------------------
+                    # TURMA
+                    # --------------------------
+
+                    df["TURMA"] = normalizar_turma(
+                        nome_excel
+                    )
 
                     lista.append(df)
+
+    # ------------------------------------------------------
+    # ARQUIVO EXCEL
+    # ------------------------------------------------------
 
     else:
 
@@ -102,44 +184,200 @@ def ler_PP(arquivo, prefixo):
 
         lista.append(df)
 
-    df = pd.concat(lista, ignore_index=True)
+    # ------------------------------------------------------
+    # NENHUM DADO
+    # ------------------------------------------------------
 
-    df.columns = [str(c).strip() for c in df.columns]
+    if len(lista) == 0:
 
-    # Renomear
+        return pd.DataFrame()
+
+    # ------------------------------------------------------
+    # CONCATENAR
+    # ------------------------------------------------------
+
+    df = pd.concat(
+        lista,
+        ignore_index=True
+    )
+
+    # ------------------------------------------------------
+    # PADRONIZAR NOMES DAS COLUNAS
+    # ------------------------------------------------------
+
+    df.columns = [
+
+        str(c).strip().upper()
+
+        for c in df.columns
+
+    ]
+
+    # ------------------------------------------------------
+    # RENOMEAR
+    # ------------------------------------------------------
+
+    mapa = {}
+
+    for coluna in df.columns:
+
+        nome = coluna.upper()
+
+        if "NR RA" in nome:
+
+            mapa[coluna] = "RA"
+
+        elif nome == "NOME":
+
+            mapa[coluna] = "NOME"
+
+        elif nome == "PORT":
+
+            mapa[coluna] = "PORT"
+
+        elif nome == "MAT":
+
+            mapa[coluna] = "MAT"
+
     df.rename(
-        columns={
-            "NR RA": "RA",
-            "Nome": "NOME",
-        },
+        columns=mapa,
         inplace=True
     )
 
-    # Converter percentuais
-    df["PORT"] = pd.to_numeric(df.get("PORT"), errors="coerce")
-    df["MAT"] = pd.to_numeric(df.get("MAT"), errors="coerce")
+    # ------------------------------------------------------
+    # GARANTIR COLUNAS
+    # ------------------------------------------------------
+
+    for coluna in [
+
+        "RA",
+        "NOME",
+        "PORT",
+        "MAT"
+
+    ]:
+
+        if coluna not in df.columns:
+
+            df[coluna] = None
+
+    # ------------------------------------------------------
+    # NORMALIZAÇÃO
+    # ------------------------------------------------------
+
+    df["RA"] = df["RA"].apply(
+        normalizar_ra
+    )
+
+    df["NOME"] = (
+        df["NOME"]
+        .astype(str)
+        .str.strip()
+    )
+
+    df["TURMA"] = (
+        df["TURMA"]
+        .astype(str)
+        .str.upper()
+        .str.strip()
+    )
+
+    # ------------------------------------------------------
+    # CONVERTER NOTAS
+    # ------------------------------------------------------
+
+    df["PORT"] = pd.to_numeric(
+        df["PORT"],
+        errors="coerce"
+    )
+
+    df["MAT"] = pd.to_numeric(
+        df["MAT"],
+        errors="coerce"
+    )
+
+    # Caso venha em percentual (94,5)
+    df.loc[df["PORT"] > 1, "PORT"] = (
+        df.loc[df["PORT"] > 1, "PORT"] / 100
+    )
+
+    df.loc[df["MAT"] > 1, "MAT"] = (
+        df.loc[df["MAT"] > 1, "MAT"] / 100
+    )
+
+    # ------------------------------------------------------
+    # RESULTADOS
+    # ------------------------------------------------------
 
     df[f"{prefixo}_LP"] = df["PORT"]
+
     df[f"{prefixo}_MAT"] = df["MAT"]
 
-    df[f"{prefixo}_LP_STATUS"] = df["PORT"].apply(classificar_pp)
-    df[f"{prefixo}_MAT_STATUS"] = df["MAT"].apply(classificar_pp)
+    df[f"{prefixo}_LP_STATUS"] = (
+        df["PORT"]
+        .apply(classificar_pp)
+    )
 
-    df["RA"] = df["RA"].astype(str).str.strip()
-    df["NOME"] = df["NOME"].astype(str).str.strip()
-    df["TURMA"] = df["TURMA"].astype(str).str.strip()
+    df[f"{prefixo}_MAT_STATUS"] = (
+        df["MAT"]
+        .apply(classificar_pp)
+    )
 
-    df["CHAVE_MERGE"] = df["RA"] + "_" + df["TURMA"]
+    # ------------------------------------------------------
+    # CHAVE
+    # ------------------------------------------------------
+
+    df["CHAVE_MERGE"] = (
+
+        df["RA"]
+
+        + "_"
+
+        + df["TURMA"]
+
+    )
+
+    # ------------------------------------------------------
+    # REMOVER DUPLICADOS
+    # ------------------------------------------------------
+
+    df = (
+
+        df
+
+        .drop_duplicates(
+            subset="CHAVE_MERGE"
+        )
+
+        .reset_index(drop=True)
+
+    )
+
+    # ------------------------------------------------------
+    # RETORNO
+    # ------------------------------------------------------
 
     return df[
+
         [
+
             "RA",
+
             "NOME",
+
             "TURMA",
+
             f"{prefixo}_LP",
+
             f"{prefixo}_LP_STATUS",
+
             f"{prefixo}_MAT",
+
             f"{prefixo}_MAT_STATUS",
-            "CHAVE_MERGE",
+
+            "CHAVE_MERGE"
+
         ]
+
     ]
+
