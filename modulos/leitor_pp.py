@@ -4,6 +4,11 @@ from io import BytesIO
 
 import pandas as pd
 
+from modulos.padronizacao import (
+    padronizar_nome,
+    padronizar_turma
+)
+
 
 # ==========================================================
 # CLASSIFICAÇÃO DA PROVA PAULISTA
