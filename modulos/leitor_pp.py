@@ -114,9 +114,9 @@ def ler_planilha(arquivo):
         header=None
     )
 
-    linha = None
+    linha_cabecalho = None
 
-    for i in range(min(10, len(bruto))):
+    for i in range(min(15, len(bruto))):
 
         texto = " ".join(
             bruto.iloc[i]
@@ -125,12 +125,17 @@ def ler_planilha(arquivo):
             .tolist()
         ).upper()
 
-        if "NR RA" in texto and "NOME" in texto:
+        if (
+            ("RA" in texto or "NR RA" in texto)
+            and
+            "NOME" in texto
+        ):
 
-            linha = i
+            linha_cabecalho = i
             break
 
-    if linha is None:
+    if linha_cabecalho is None:
+
         raise ValueError(
             "Cabeçalho da Prova Paulista não encontrado."
         )
@@ -139,12 +144,12 @@ def ler_planilha(arquivo):
 
     df = pd.read_excel(
         arquivo,
-        header=linha
+        header=linha_cabecalho
     )
 
     df.columns = [
-        str(c).strip()
-        for c in df.columns
+        str(coluna).strip()
+        for coluna in df.columns
     ]
 
     return df
@@ -163,47 +168,48 @@ def ler_PP(arquivo, prefixo):
 
     if arquivo.name.lower().endswith(".zip"):
 
-        with zipfile.ZipFile(arquivo) as z:
+    with zipfile.ZipFile(arquivo) as z:
 
-            arquivos_excel = [
+        arquivos_excel = sorted(
 
-                nome
+            nome
 
-                for nome in z.namelist()
+            for nome in z.namelist()
 
-                if nome.lower().endswith(
+            if (
+                nome.lower().endswith(
                     (".xlsx", ".xlsm")
                 )
+                and
+                not os.path.basename(nome).startswith("~$")
+                and
+                not os.path.basename(nome).startswith(".")
+            )
 
-            ]
+        )
 
             for nome_excel in arquivos_excel:
 
-                with z.open(nome_excel) as f:
+    try:
 
-                    dados = BytesIO(
-                        f.read()
-                    )
+        with z.open(nome_excel) as f:
 
-                    try:
+            dados = BytesIO(f.read())
 
-                        df = ler_planilha(
-                            dados
-                        )
+            df = ler_planilha(dados)
 
-                    except Exception:
+            df["TURMA"] = normalizar_turma(
+                nome_excel
+            )
 
-                        continue
+            lista.append(df)
 
-                    # --------------------------
-                    # TURMA
-                    # --------------------------
+    except Exception as erro:
 
-                    df["TURMA"] = normalizar_turma(
-                        nome_excel
-                    )
-
-                    lista.append(df)
+        print(
+            f"[AVISO] Arquivo ignorado: "
+            f"{nome_excel} ({erro})"
+        )
 
     # ------------------------------------------------------
     # ARQUIVO EXCEL
@@ -246,36 +252,45 @@ def ler_PP(arquivo, prefixo):
 
     ]
 
-    # ------------------------------------------------------
-    # RENOMEAR
-    # ------------------------------------------------------
+# ------------------------------------------------------
+# RENOMEAR COLUNAS
+# ------------------------------------------------------
 
-    mapa = {}
+mapa = {}
 
-    for coluna in df.columns:
+for coluna in df.columns:
 
-        nome = coluna.upper()
+    nome = str(coluna).strip().upper()
 
-        if "NR RA" in nome:
+    if "RA" in nome:
+        mapa[coluna] = "RA"
 
-            mapa[coluna] = "RA"
+    elif nome in [
+        "NOME",
+        "ESTUDANTE",
+        "ALUNO"
+    ]:
+        mapa[coluna] = "NOME"
 
-        elif nome == "NOME":
+    elif nome in [
+        "PORT",
+        "LP",
+        "LÍNGUA PORTUGUESA",
+        "LINGUA PORTUGUESA"
+    ]:
+        mapa[coluna] = "PORT"
 
-            mapa[coluna] = "NOME"
+    elif nome in [
+        "MAT",
+        "MATEMÁTICA",
+        "MATEMATICA"
+    ]:
+        mapa[coluna] = "MAT"
 
-        elif nome == "PORT":
-
-            mapa[coluna] = "PORT"
-
-        elif nome == "MAT":
-
-            mapa[coluna] = "MAT"
-
-    df.rename(
-        columns=mapa,
-        inplace=True
-    )
+df.rename(
+    columns=mapa,
+    inplace=True
+)
 
     # ------------------------------------------------------
     # GARANTIR COLUNAS
