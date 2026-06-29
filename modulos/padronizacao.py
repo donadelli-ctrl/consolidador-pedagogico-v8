@@ -1,4 +1,29 @@
 import re
+import unicodedata
+
+
+# ==========================================================
+# PADRONIZAR NOME
+# ==========================================================
+
+def padronizar_nome(nome):
+
+    if nome is None:
+        return ""
+
+    nome = str(nome).upper().strip()
+
+    # Remove acentos
+    nome = "".join(
+        c
+        for c in unicodedata.normalize("NFD", nome)
+        if unicodedata.category(c) != "Mn"
+    )
+
+    # Remove espaços duplicados
+    nome = re.sub(r"\s+", " ", nome)
+
+    return nome
 
 
 # ==========================================================
@@ -12,18 +37,12 @@ def padronizar_turma(turma):
 
     turma = str(turma).upper().strip()
 
-    # remover espaços
     turma = turma.replace(" ", "")
-
-    # remover º ª °
     turma = turma.replace("º", "")
     turma = turma.replace("°", "")
     turma = turma.replace("ª", "")
-
-    # remover hífen
     turma = turma.replace("-", "")
 
-    # remover qualquer caractere estranho
     turma = re.sub(r"[^A-Z0-9]", "", turma)
 
     return turma
