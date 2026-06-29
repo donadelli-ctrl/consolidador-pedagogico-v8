@@ -319,10 +319,11 @@ def ler_PP(arquivo, prefixo):
     )
 
     df["NOME"] = (
-        df["NOME"]
-        .fillna("")
-        .astype(str)
-        .str.strip()
+    df["NOME"]
+    .fillna("")
+    .astype(str)
+    .str.upper()
+    .str.strip()
     )
 
     df["TURMA"] = (
@@ -370,11 +371,21 @@ def ler_PP(arquivo, prefixo):
     # ------------------------------------------------------
     # CHAVE DE MERGE
     # ------------------------------------------------------
+    # CHAVE DE MERGE
+    # ------------------------------------------------------
 
-    df["CHAVE_MERGE"] = (
-        df["RA"]
+    possui_ra = df["RA"] != ""
+
+    df.loc[possui_ra, "CHAVE_MERGE"] = (
+        df.loc[possui_ra, "RA"]
         + "_"
-        + df["TURMA"]
+        + df.loc[possui_ra, "TURMA"]
+    )
+
+    df.loc[~possui_ra, "CHAVE_MERGE"] = (
+        df.loc[~possui_ra, "NOME"]
+        + "_"
+        + df.loc[~possui_ra, "TURMA"]
     )
 
     # ------------------------------------------------------
