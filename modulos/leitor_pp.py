@@ -61,6 +61,47 @@ def normalizar_ra(valor):
 
     return texto.zfill(12)
 
+# ==========================================================
+# NORMALIZA TURMA
+# ==========================================================
+
+def normalizar_turma(nome_arquivo):
+
+    turma = os.path.splitext(
+        os.path.basename(nome_arquivo)
+    )[0]
+
+    turma = (
+        turma.upper()
+        .replace("ª", "")
+        .replace("º", "")
+        .replace("-", " ")
+        .replace("_", " ")
+        .strip()
+    )
+
+    while "  " in turma:
+        turma = turma.replace("  ", " ")
+
+    remover = [
+        "PROVA PAULISTA",
+        "PP1",
+        "PP2",
+        "PP3",
+        "1 BIMESTRE",
+        "2 BIMESTRE",
+        "3 BIMESTRE",
+        "4 BIMESTRE"
+    ]
+
+    for texto in remover:
+        turma = turma.replace(texto, "").strip()
+
+    while "  " in turma:
+        turma = turma.replace("  ", " ")
+
+    return turma
+
 
 # ==========================================================
 # LEITURA DA PLANILHA
