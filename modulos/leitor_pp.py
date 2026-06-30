@@ -112,39 +112,66 @@ def normalizar_turma(nome_arquivo):
 # LEITURA DA PLANILHA
 # ==========================================================
 
+# ==========================================================
+# LEITURA DA PLANILHA
+# ==========================================================
+
 def ler_planilha(arquivo):
+    """
+    Localiza automaticamente a linha de cabeçalho da planilha da
+    Prova Paulista e devolve um DataFrame já com os nomes das
+    colunas limpos.
+    """
+
+    # ------------------------------------------------------
+    # Lê toda a planilha sem assumir cabeçalho
+    # ------------------------------------------------------
 
     bruto = pd.read_excel(
         arquivo,
-        header=None
+        header=None,
+        dtype=object
     )
 
     linha_cabecalho = None
 
-    for i in range(min(15, len(bruto))):
+    # Procura o cabeçalho nas primeiras linhas
+    limite = min(20, len(bruto))
+
+    for i in range(limite):
 
         texto = " ".join(
             bruto.iloc[i]
             .fillna("")
             .astype(str)
+            .str.upper()
             .tolist()
-        ).upper()
+        )
 
-        if (
-            ("RA" in texto or "NR RA" in texto)
-            and
+        encontrou_ra = (
+            "RA" in texto
+            or "NR RA" in texto
+            or "Nº RA" in texto
+            or "NUMERO RA" in texto
+            or "NÚMERO RA" in texto
+        )
+
+        encontrou_nome = (
             "NOME" in texto
-        ):
+            or "ALUNO" in texto
+            or "ESTUDANTE" in texto
+        )
 
+        if encontrou_ra and encontrou_nome:
             linha_cabecalho = i
             break
 
     if linha_cabecalho is None:
-
         raise ValueError(
-            "Cabeçalho da Prova Paulista não encontrado."
+            "Cabeçalho da Prova Paulista não localizado."
         )
 
+    # Volta para o início do arquivo
     arquivo.seek(0)
 
     df = pd.read_excel(
@@ -152,10 +179,49 @@ def ler_planilha(arquivo):
         header=linha_cabecalho
     )
 
-    df.columns = [
-        str(coluna).strip()
-        for coluna in df.columns
-    ]
+    # ------------------------------------------------------
+    # Remove colunas totalmente vazias
+    # ------------------------------------------------------
+
+    df = df.dropna(
+        axis=1,
+        how="all"
+    )
+
+    # ------------------------------------------------------
+    # Limpeza dos nomes das colunas
+    # ------------------------------------------------------
+
+    novas_colunas = []
+
+    for coluna in df.columns:
+
+        nome = (
+            str(coluna)
+            .replace("\n", " ")
+            .replace("\r", " ")
+            .strip()
+        )
+
+        while "  " in nome:
+            nome = nome.replace("  ", " ")
+
+        novas_colunas.append(nome)
+
+    df.columns = novas_colunas
+
+    # ------------------------------------------------------
+    # Remove linhas completamente vazias
+    # ------------------------------------------------------
+
+    df = df.dropna(
+        how="all"
+    )
+
+    df.reset_index(
+        drop=True,
+        inplace=True
+    )
 
     return df
 
