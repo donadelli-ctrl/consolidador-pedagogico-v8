@@ -112,10 +112,6 @@ def normalizar_turma(nome_arquivo):
 # LEITURA DA PLANILHA
 # ==========================================================
 
-# ==========================================================
-# LEITURA DA PLANILHA
-# ==========================================================
-
 def ler_planilha(arquivo):
     """
     Localiza automaticamente a linha de cabeçalho da planilha da
@@ -229,6 +225,10 @@ def ler_planilha(arquivo):
 # LEITOR PRINCIPAL
 # ==========================================================
 
+# ==========================================================
+# LEITOR PRINCIPAL
+# ==========================================================
+
 def ler_PP(arquivo, prefixo):
 
     lista = []
@@ -242,23 +242,16 @@ def ler_PP(arquivo, prefixo):
         with zipfile.ZipFile(arquivo) as z:
 
             arquivos_excel = sorted(
-
                 nome
-
                 for nome in z.namelist()
-
                 if (
                     nome.lower().endswith((".xlsx", ".xlsm"))
-                    and
-                    not os.path.basename(nome).startswith("~$")
-                    and
-                    not os.path.basename(nome).startswith(".")
+                    and not os.path.basename(nome).startswith("~$")
+                    and not os.path.basename(nome).startswith(".")
                 )
-
             )
 
-            if len(arquivos_excel) == 0:
-
+            if not arquivos_excel:
                 raise ValueError(
                     "Nenhum arquivo Excel encontrado no ZIP."
                 )
@@ -273,42 +266,40 @@ def ler_PP(arquivo, prefixo):
 
                         df = ler_planilha(dados)
 
-                        df["TURMA"] = normalizar_turma(
-                            nome_excel
-                        )
+                        # Define a turma a partir do nome do arquivo
+                        df["TURMA"] = normalizar_turma(nome_excel)
 
                         lista.append(df)
 
                 except Exception as erro:
 
                     print(
-                        f"[AVISO] {nome_excel}: {erro}"
+                        f"[AVISO] Erro ao ler '{nome_excel}': {erro}"
                     )
 
     # ------------------------------------------------------
-    # LEITURA DE EXCEL
+    # LEITURA DE ARQUIVO EXCEL
     # ------------------------------------------------------
 
     else:
 
         df = ler_planilha(arquivo)
 
-    # Usa a coluna TURMA quando ela existir
-    if "TURMA" in df.columns:
+        if "TURMA" not in df.columns:
 
-        df["TURMA"] = (
-            df["TURMA"]
-            .fillna("")
-            .astype(str)
-        )
+            df["TURMA"] = normalizar_turma(
+                arquivo.name
+            )
 
-    else:
+        else:
 
-        df["TURMA"] = normalizar_turma(
-            arquivo.name
-        )
+            df["TURMA"] = (
+                df["TURMA"]
+                .fillna("")
+                .astype(str)
+            )
 
-    lista.append(df)
+        lista.append(df)
 
     # ------------------------------------------------------
     # NENHUM DADO
