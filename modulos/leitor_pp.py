@@ -225,10 +225,6 @@ def ler_planilha(arquivo):
 # LEITOR PRINCIPAL
 # ==========================================================
 
-# ==========================================================
-# LEITOR PRINCIPAL
-# ==========================================================
-
 def ler_PP(arquivo, prefixo):
 
     lista = []
@@ -322,47 +318,71 @@ def ler_PP(arquivo, prefixo):
     # PADRONIZAR NOMES DAS COLUNAS
     # ------------------------------------------------------
 
+        # ------------------------------------------------------
+    # PADRONIZAR NOMES DAS COLUNAS
+    # ------------------------------------------------------
+
     df.columns = [
-
         str(coluna).strip().upper()
-
         for coluna in df.columns
-
     ]
-
-    # ------------------------------------------------------
-    # RENOMEAR COLUNAS
-    # ------------------------------------------------------
 
     mapa = {}
 
     for coluna in df.columns:
 
-        nome = str(coluna).strip().upper()
+        nome = coluna.upper()
 
-        if "RA" in nome:
+        # ---------------- RA ----------------
+
+        if (
+            "RA" == nome
+            or "NR RA" in nome
+            or "Nº RA" in nome
+            or "NUMERO RA" in nome
+            or "NÚMERO RA" in nome
+        ):
+
             mapa[coluna] = "RA"
 
-        elif nome in (
-            "NOME",
-            "ESTUDANTE",
-            "ALUNO"
+        # ---------------- NOME ----------------
+
+        elif any(
+            chave in nome
+            for chave in [
+                "NOME",
+                "ALUNO",
+                "ESTUDANTE"
+            ]
         ):
+
             mapa[coluna] = "NOME"
 
-        elif nome in (
-            "PORT",
-            "LP",
-            "LÍNGUA PORTUGUESA",
-            "LINGUA PORTUGUESA"
+        # ---------------- LÍNGUA PORTUGUESA ----------------
+
+        elif any(
+            chave in nome
+            for chave in [
+                "PORT",
+                "PORTUG",
+                "LÍNGUA",
+                "LINGUA",
+                "LP"
+            ]
         ):
+
             mapa[coluna] = "PORT"
 
-        elif nome in (
-            "MAT",
-            "MATEMÁTICA",
-            "MATEMATICA"
+        # ---------------- MATEMÁTICA ----------------
+
+        elif any(
+            chave in nome
+            for chave in [
+                "MAT",
+                "MATEM"
+            ]
         ):
+
             mapa[coluna] = "MAT"
 
     df.rename(
@@ -389,24 +409,45 @@ def ler_PP(arquivo, prefixo):
     # NORMALIZAÇÃO
     # ------------------------------------------------------
 
-    df["RA"] = df["RA"].apply(
-        normalizar_ra
+        # ------------------------------------------------------
+    # NORMALIZAÇÃO
+    # ------------------------------------------------------
+
+    # RA
+    df["RA"] = (
+        df["RA"]
+        .apply(normalizar_ra)
+        .fillna("")
+        .astype(str)
     )
 
+    # Nome
     df["NOME"] = (
-    df["NOME"]
-    .fillna("")
-    .astype(str)
-    .str.upper()
-    .str.strip()
+        df["NOME"]
+        .fillna("")
+        .astype(str)
+        .str.upper()
+        .str.strip()
     )
 
+    # Remove espaços duplos
+    df["NOME"] = (
+        df["NOME"]
+        .str.replace(r"\s+", " ", regex=True)
+    )
+
+    # Turma
     df["TURMA"] = (
         df["TURMA"]
         .fillna("")
         .astype(str)
         .str.upper()
         .str.strip()
+    )
+
+    df["TURMA"] = (
+        df["TURMA"]
+        .str.replace(r"\s+", " ", regex=True)
     )
 
     # ------------------------------------------------------
@@ -447,18 +488,60 @@ def ler_PP(arquivo, prefixo):
     # CHAVE DE MERGE
     # ------------------------------------------------------
     
-    possui_ra = df["RA"] != ""
+        # ------------------------------------------------------
+    # CHAVE DE MERGE
+    # ------------------------------------------------------
 
-    df.loc[possui_ra, "CHAVE_MERGE"] = (
-        df.loc[possui_ra, "RA"]
-        + "_"
-        + df.loc[possui_ra, "TURMA"]
+    possui_ra = (
+        df["RA"]
+        .fillna("")
+        .astype(str)
+        .str.strip()
+        != ""
     )
 
-    df.loc[~possui_ra, "CHAVE_MERGE"] = (
-        df.loc[~possui_ra, "NOME"]
+    df["CHAVE_MERGE"] = ""
+
+    # Quando existe RA
+    df.loc[possui_ra, "CHAVE_MERGE"] = (
+
+        df.loc[possui_ra, "RA"]
+        .str.strip()
+
         + "_"
+
+        + df.loc[possui_ra, "TURMA"]
+        .str.strip()
+
+    )
+
+    # Quando não existe RA
+    df.loc[~possui_ra, "CHAVE_MERGE"] = (
+
+        df.loc[~possui_ra, "NOME"]
+        .str.upper()
+        .str.strip()
+
+        + "_"
+
         + df.loc[~possui_ra, "TURMA"]
+        .str.strip()
+
+    )
+
+    # Remove espaços duplicados
+    df["CHAVE_MERGE"] = (
+
+        df["CHAVE_MERGE"]
+
+        .str.replace(
+            r"\s+",
+            " ",
+            regex=True
+        )
+
+        .str.strip()
+
     )
 
     # ------------------------------------------------------
