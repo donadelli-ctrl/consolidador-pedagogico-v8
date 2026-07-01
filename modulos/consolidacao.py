@@ -92,24 +92,22 @@ def consolidar_base(
         # COLUNAS QUE SERÃO INCORPORADAS
         # --------------------------------------------------
 
-        colunas_merge = [
+       
+        colunas_merge = []
 
-            coluna
+        for coluna in df.columns:
 
-            for coluna in df.columns
+            if coluna == "CHAVE_MERGE":
+                colunas_merge.append(coluna)
 
-            if coluna not in [
+            elif coluna.startswith(nome):
 
-                "RA",
-                "NOME",
-                "TURMA"
+                colunas_merge.append(coluna)
 
-            ]
+            elif coluna.endswith("_STATUS"):
 
-        ]
-
-        df_merge = df[colunas_merge].copy()
-
+                colunas_merge.append(coluna)
+                
         # --------------------------------------------------
         # REMOVE COLUNAS DUPLICADAS
         # --------------------------------------------------
@@ -137,35 +135,41 @@ def consolidar_base(
         # RECUPERAR DADOS DE IDENTIFICAÇÃO
         # --------------------------------------------------
 
-        for coluna in [
-
-            "RA",
-            "NOME",
-            "TURMA"
-
-        ]:
+        
+        for coluna in ["RA", "NOME", "TURMA"]:
 
             coluna_x = f"{coluna}_x"
             coluna_y = f"{coluna}_y"
 
-            if (
-                coluna_x in base.columns
-                and
-                coluna_y in base.columns
-            ):
+            if coluna_x in base.columns and coluna_y in base.columns:
 
                 base[coluna] = (
                     base[coluna_x]
-                    .fillna(base[coluna_y])
+                    .combine_first(base[coluna_y])
                 )
 
                 base.drop(
-                    columns=[
-                        coluna_x,
-                        coluna_y
-                    ],
+                    columns=[coluna_x, coluna_y],
                     inplace=True
                 )
+
+            elif coluna_x in base.columns:
+
+                base.rename(
+                    columns={coluna_x: coluna},
+                    inplace=True
+                )
+
+            elif coluna_y in base.columns:
+
+                base.rename(
+                    columns={coluna_y: coluna},
+                    inplace=True
+                )
+
+            elif coluna not in base.columns:
+
+                base[coluna] = ""
 
     # ======================================================
     # REMOVER DUPLICIDADES
