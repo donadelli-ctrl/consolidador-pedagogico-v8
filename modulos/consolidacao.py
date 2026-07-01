@@ -74,6 +74,10 @@ def consolidar_base(
     # MERGE DAS DEMAIS BASES
     # ======================================================
 
+        # ======================================================
+    # MERGE DAS DEMAIS BASES
+    # ======================================================
+
     for nome, df in bases:
 
         if df is None:
@@ -89,33 +93,25 @@ def consolidar_base(
             continue
 
         # --------------------------------------------------
-        # COLUNAS QUE SERÃO INCORPORADAS
+        # Mantém apenas as colunas necessárias
         # --------------------------------------------------
 
-       
-        colunas_merge = []
+        colunas_merge = ["CHAVE_MERGE"]
 
         for coluna in df.columns:
 
             if coluna == "CHAVE_MERGE":
-                colunas_merge.append(coluna)
+                continue
 
-            elif coluna.startswith(nome):
-
-                colunas_merge.append(coluna)
-
-            elif coluna.endswith("_STATUS"):
+            if coluna.startswith(nome):
 
                 colunas_merge.append(coluna)
-                
-        # --------------------------------------------------
-        # REMOVE COLUNAS DUPLICADAS
-        # --------------------------------------------------
 
-        df_merge = df_merge.loc[
-            :,
-            ~df_merge.columns.duplicated()
-        ]
+        df_merge = (
+            df[colunas_merge]
+            .copy()
+            .loc[:, lambda x: ~x.columns.duplicated()]
+        )
 
         # --------------------------------------------------
         # MERGE
@@ -132,10 +128,9 @@ def consolidar_base(
         )
 
         # --------------------------------------------------
-        # RECUPERAR DADOS DE IDENTIFICAÇÃO
+        # Recuperar identificação
         # --------------------------------------------------
 
-        
         for coluna in ["RA", "NOME", "TURMA"]:
 
             coluna_x = f"{coluna}_x"
@@ -175,6 +170,20 @@ def consolidar_base(
     # REMOVER DUPLICIDADES
     # ======================================================
 
+        # ======================================================
+    # REMOVER DUPLICIDADES
+    # ======================================================
+
+    # Remove registros sem chave
+    base = base[
+        base["CHAVE_MERGE"]
+        .fillna("")
+        .astype(str)
+        .str.strip()
+        != ""
+    ]
+
+    # Mantém apenas o primeiro registro de cada estudante
     base = (
         base
         .drop_duplicates(
@@ -183,6 +192,18 @@ def consolidar_base(
         )
         .reset_index(drop=True)
     )
+
+    # Remove espaços excedentes
+    for coluna in ["RA", "NOME", "TURMA", "CHAVE_MERGE"]:
+
+        if coluna in base.columns:
+
+            base[coluna] = (
+                base[coluna]
+                .fillna("")
+                .astype(str)
+                .str.strip()
+            )
 
     # ======================================================
     # ORDENAÇÃO
