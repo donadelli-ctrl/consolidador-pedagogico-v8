@@ -1,3 +1,7 @@
+# ==========================================================
+# LEITOR PROVA PAULISTA - MVP
+# ==========================================================
+
 import os
 import zipfile
 from io import BytesIO
@@ -6,12 +10,14 @@ import pandas as pd
 
 from modulos.padronizacao import (
     padronizar_nome,
-    padronizar_turma
+    padronizar_turma,
+    normalizar_ra,
+    criar_chave_merge
 )
 
 
 # ==========================================================
-# CLASSIFICAÇÃO DA PROVA PAULISTA
+# CLASSIFICAÇÃO
 # ==========================================================
 
 def classificar_pp(valor):
@@ -21,10 +27,9 @@ def classificar_pp(valor):
 
     try:
         valor = float(valor)
-    except (TypeError, ValueError):
+    except:
         return ""
 
-    # Caso venha em percentual (94.4)
     if valor > 1:
         valor /= 100
 
@@ -41,71 +46,16 @@ def classificar_pp(valor):
 
 
 # ==========================================================
-# NORMALIZA RA
+# OBTÉM A TURMA PELO NOME DO ARQUIVO
 # ==========================================================
 
-def normalizar_ra(valor):
-
-    if pd.isna(valor):
-        return ""
-
-    texto = str(valor).strip()
-
-    # Remove ".0" quando o Excel converte para número
-    if texto.endswith(".0"):
-        texto = texto[:-2]
-
-    # Mantém apenas os dígitos
-    texto = "".join(
-        c for c in texto
-        if c.isdigit()
-    )
-
-    if texto == "":
-        return ""
-
-    return texto
-
-# ==========================================================
-# NORMALIZA TURMA
-# ==========================================================
-
-def normalizar_turma(nome_arquivo):
+def obter_turma(nome_arquivo):
 
     turma = os.path.splitext(
         os.path.basename(nome_arquivo)
     )[0]
 
-    turma = (
-        turma.upper()
-        .replace("ª", "")
-        .replace("º", "")
-        .replace("-", " ")
-        .replace("_", " ")
-        .strip()
-    )
-
-    while "  " in turma:
-        turma = turma.replace("  ", " ")
-
-    remover = [
-        "PROVA PAULISTA",
-        "PP1",
-        "PP2",
-        "PP3",
-        "1 BIMESTRE",
-        "2 BIMESTRE",
-        "3 BIMESTRE",
-        "4 BIMESTRE"
-    ]
-
-    for texto in remover:
-        turma = turma.replace(texto, "").strip()
-
-    while "  " in turma:
-        turma = turma.replace("  ", " ")
-
-    return turma
+    return padronizar_turma(turma)
 
 
 # ==========================================================
@@ -113,15 +63,6 @@ def normalizar_turma(nome_arquivo):
 # ==========================================================
 
 def ler_planilha(arquivo):
-    """
-    Localiza automaticamente a linha de cabeçalho da planilha da
-    Prova Paulista e devolve um DataFrame já com os nomes das
-    colunas limpos.
-    """
-
-    # ------------------------------------------------------
-    # Lê toda a planilha sem assumir cabeçalho
-    # ------------------------------------------------------
 
     bruto = pd.read_excel(
         arquivo,
@@ -131,7 +72,6 @@ def ler_planilha(arquivo):
 
     linha_cabecalho = None
 
-    # Procura o cabeçalho nas primeiras linhas
     limite = min(20, len(bruto))
 
     for i in range(limite):
@@ -141,10 +81,9 @@ def ler_planilha(arquivo):
             .fillna("")
             .astype(str)
             .str.upper()
-            .tolist()
         )
 
-        encontrou_ra = (
+        possui_ra = (
             "RA" in texto
             or "NR RA" in texto
             or "Nº RA" in texto
@@ -152,22 +91,23 @@ def ler_planilha(arquivo):
             or "NÚMERO RA" in texto
         )
 
-        encontrou_nome = (
+        possui_nome = (
             "NOME" in texto
             or "ALUNO" in texto
             or "ESTUDANTE" in texto
         )
 
-        if encontrou_ra and encontrou_nome:
+        if possui_ra and possui_nome:
+
             linha_cabecalho = i
             break
 
     if linha_cabecalho is None:
+
         raise ValueError(
-            "Cabeçalho da Prova Paulista não localizado."
+            "Cabeçalho não localizado."
         )
 
-    # Volta para o início do arquivo
     arquivo.seek(0)
 
     df = pd.read_excel(
@@ -175,40 +115,10 @@ def ler_planilha(arquivo):
         header=linha_cabecalho
     )
 
-    # ------------------------------------------------------
-    # Remove colunas totalmente vazias
-    # ------------------------------------------------------
-
     df = df.dropna(
         axis=1,
         how="all"
     )
-
-    # ------------------------------------------------------
-    # Limpeza dos nomes das colunas
-    # ------------------------------------------------------
-
-    novas_colunas = []
-
-    for coluna in df.columns:
-
-        nome = (
-            str(coluna)
-            .replace("\n", " ")
-            .replace("\r", " ")
-            .strip()
-        )
-
-        while "  " in nome:
-            nome = nome.replace("  ", " ")
-
-        novas_colunas.append(nome)
-
-    df.columns = novas_colunas
-
-    # ------------------------------------------------------
-    # Remove linhas completamente vazias
-    # ------------------------------------------------------
 
     df = df.dropna(
         how="all"
@@ -219,6 +129,16 @@ def ler_planilha(arquivo):
         inplace=True
     )
 
+    df.columns = [
+
+        str(coluna)
+        .strip()
+        .upper()
+
+        for coluna in df.columns
+
+    ]
+
     return df
 
 # ==========================================================
@@ -227,55 +147,44 @@ def ler_planilha(arquivo):
 
 def ler_PP(arquivo, prefixo):
 
+    if arquivo is None:
+        return pd.DataFrame()
+
     lista = []
 
     # ------------------------------------------------------
-    # LEITURA DE ARQUIVO ZIP
+    # LEITURA DE ZIP
     # ------------------------------------------------------
 
     if arquivo.name.lower().endswith(".zip"):
 
-        with zipfile.ZipFile(arquivo) as z:
+        with zipfile.ZipFile(arquivo) as zip_ref:
 
-            arquivos_excel = sorted(
+            arquivos = sorted([
+
                 nome
-                for nome in z.namelist()
-                if (
-                    nome.lower().endswith((".xlsx", ".xlsm"))
-                    and not os.path.basename(nome).startswith("~$")
-                    and not os.path.basename(nome).startswith(".")
-                )
-            )
 
-            if not arquivos_excel:
-                raise ValueError(
-                    "Nenhum arquivo Excel encontrado no ZIP."
+                for nome in zip_ref.namelist()
+
+                if nome.lower().endswith(
+                    (".xlsx", ".xlsm")
                 )
 
-            for nome_excel in arquivos_excel:
+                and not os.path.basename(nome).startswith("~$")
 
-                try:
+            ])
 
-                    with z.open(nome_excel) as f:
+            for nome in arquivos:
 
-                        dados = BytesIO(f.read())
+                with zip_ref.open(nome) as f:
 
-                        df = ler_planilha(dados)
+                    dados = BytesIO(f.read())
 
-                        # Define a turma a partir do nome do arquivo
-                        df["TURMA"] = normalizar_turma(nome_excel)
+                    df = ler_planilha(dados)
 
-                        lista.append(df)
+                    df["TURMA"] = obter_turma(nome)
 
-                except Exception as erro:
-
-                    print(
-                        f"[AVISO] Erro ao ler '{nome_excel}': {erro}"
-                    )
-
-    # ------------------------------------------------------
-    # LEITURA DE ARQUIVO EXCEL
-    # ------------------------------------------------------
+                    lista.append(df)
 
     else:
 
@@ -283,31 +192,15 @@ def ler_PP(arquivo, prefixo):
 
         if "TURMA" not in df.columns:
 
-            df["TURMA"] = normalizar_turma(
+            df["TURMA"] = obter_turma(
                 arquivo.name
-            )
-
-        else:
-
-            df["TURMA"] = (
-                df["TURMA"]
-                .fillna("")
-                .astype(str)
             )
 
         lista.append(df)
 
-    # ------------------------------------------------------
-    # NENHUM DADO
-    # ------------------------------------------------------
-
-    if not lista:
+    if len(lista) == 0:
 
         return pd.DataFrame()
-
-    # ------------------------------------------------------
-    # CONCATENAR
-    # ------------------------------------------------------
 
     df = pd.concat(
         lista,
@@ -315,28 +208,17 @@ def ler_PP(arquivo, prefixo):
     )
 
     # ------------------------------------------------------
-    # PADRONIZAR NOMES DAS COLUNAS
+    # PADRONIZA NOMES DAS COLUNAS
     # ------------------------------------------------------
-
-        # ------------------------------------------------------
-    # PADRONIZAR NOMES DAS COLUNAS
-    # ------------------------------------------------------
-
-    df.columns = [
-        str(coluna).strip().upper()
-        for coluna in df.columns
-    ]
 
     mapa = {}
 
     for coluna in df.columns:
 
-        nome = coluna.upper()
-
-        # ---------------- RA ----------------
+        nome = str(coluna).upper()
 
         if (
-            "RA" == nome
+            nome == "RA"
             or "NR RA" in nome
             or "Nº RA" in nome
             or "NUMERO RA" in nome
@@ -345,11 +227,9 @@ def ler_PP(arquivo, prefixo):
 
             mapa[coluna] = "RA"
 
-        # ---------------- NOME ----------------
-
         elif any(
-            chave in nome
-            for chave in [
+            x in nome
+            for x in [
                 "NOME",
                 "ALUNO",
                 "ESTUDANTE"
@@ -358,26 +238,22 @@ def ler_PP(arquivo, prefixo):
 
             mapa[coluna] = "NOME"
 
-        # ---------------- LÍNGUA PORTUGUESA ----------------
-
         elif any(
-            chave in nome
-            for chave in [
+            x in nome
+            for x in [
                 "PORT",
                 "PORTUG",
-                "LÍNGUA",
                 "LINGUA",
+                "LÍNGUA",
                 "LP"
             ]
         ):
 
             mapa[coluna] = "PORT"
 
-        # ---------------- MATEMÁTICA ----------------
-
         elif any(
-            chave in nome
-            for chave in [
+            x in nome
+            for x in [
                 "MAT",
                 "MATEM"
             ]
@@ -390,30 +266,22 @@ def ler_PP(arquivo, prefixo):
         inplace=True
     )
 
-    # ------------------------------------------------------
-    # GARANTIR COLUNAS
-    # ------------------------------------------------------
-
-    for coluna in (
+    for coluna in [
         "RA",
         "NOME",
         "PORT",
-        "MAT"
-    ):
+        "MAT",
+        "TURMA"
+    ]:
 
         if coluna not in df.columns:
 
-            df[coluna] = None
+            df[coluna] = ""
 
     # ------------------------------------------------------
     # NORMALIZAÇÃO
     # ------------------------------------------------------
 
-        # ------------------------------------------------------
-    # NORMALIZAÇÃO
-    # ------------------------------------------------------
-
-    # RA
     df["RA"] = (
         df["RA"]
         .apply(normalizar_ra)
@@ -421,37 +289,22 @@ def ler_PP(arquivo, prefixo):
         .astype(str)
     )
 
-    # Nome
     df["NOME"] = (
         df["NOME"]
         .fillna("")
         .astype(str)
-        .str.upper()
-        .str.strip()
+        .apply(padronizar_nome)
     )
 
-    # Remove espaços duplos
-    df["NOME"] = (
-        df["NOME"]
-        .str.replace(r"\s+", " ", regex=True)
-    )
-
-    # Turma
     df["TURMA"] = (
         df["TURMA"]
         .fillna("")
         .astype(str)
-        .str.upper()
-        .str.strip()
-    )
-
-    df["TURMA"] = (
-        df["TURMA"]
-        .str.replace(r"\s+", " ", regex=True)
+        .apply(padronizar_turma)
     )
 
     # ------------------------------------------------------
-    # CONVERTER NOTAS
+    # CONVERTE NOTAS
     # ------------------------------------------------------
 
     df["PORT"] = pd.to_numeric(
@@ -464,9 +317,13 @@ def ler_PP(arquivo, prefixo):
         errors="coerce"
     )
 
-    df.loc[df["PORT"] > 1, "PORT"] /= 100
+    df.loc[df["PORT"] > 1, "PORT"] = (
+        df.loc[df["PORT"] > 1, "PORT"] / 100
+    )
 
-    df.loc[df["MAT"] > 1, "MAT"] /= 100
+    df.loc[df["MAT"] > 1, "MAT"] = (
+        df.loc[df["MAT"] > 1, "MAT"] / 100
+    )
 
     # ------------------------------------------------------
     # RESULTADOS
@@ -487,65 +344,18 @@ def ler_PP(arquivo, prefixo):
     # ------------------------------------------------------
     # CHAVE DE MERGE
     # ------------------------------------------------------
-    
-        # ------------------------------------------------------
-    # CHAVE DE MERGE
-    # ------------------------------------------------------
 
-    possui_ra = (
-        df["RA"]
-        .fillna("")
-        .astype(str)
-        .str.strip()
-        != ""
-    )
-
-    df["CHAVE_MERGE"] = ""
-
-    # Quando existe RA
-    df.loc[possui_ra, "CHAVE_MERGE"] = (
-
-        df.loc[possui_ra, "RA"]
-        .str.strip()
-
-        + "_"
-
-        + df.loc[possui_ra, "TURMA"]
-        .str.strip()
-
-    )
-
-    # Quando não existe RA
-    df.loc[~possui_ra, "CHAVE_MERGE"] = (
-
-        df.loc[~possui_ra, "NOME"]
-        .str.upper()
-        .str.strip()
-
-        + "_"
-
-        + df.loc[~possui_ra, "TURMA"]
-        .str.strip()
-
-    )
-
-    # Remove espaços duplicados
-    df["CHAVE_MERGE"] = (
-
-        df["CHAVE_MERGE"]
-
-        .str.replace(
-            r"\s+",
-            " ",
-            regex=True
-        )
-
-        .str.strip()
-
+    df["CHAVE_MERGE"] = df.apply(
+        lambda linha: criar_chave_merge(
+            linha["RA"],
+            linha["NOME"],
+            linha["TURMA"]
+        ),
+        axis=1
     )
 
     # ------------------------------------------------------
-    # REMOVER DUPLICADOS
+    # REMOVE DUPLICADOS
     # ------------------------------------------------------
 
     df = (
@@ -576,6 +386,4 @@ def ler_PP(arquivo, prefixo):
             "CHAVE_MERGE"
         ]
     ]
-
-
 
